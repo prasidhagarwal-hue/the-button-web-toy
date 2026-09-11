@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>THE BUTTON — Do Not Click</title>
+  <meta name="description" content="A mysterious button sits before you. Whatever you do, do NOT click it." />
+
+  <!-- Google Fonts: Space Grotesk (UI) + Space Mono (monospace/HUD) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;700&family=Space+Mono:wght@400;700&display=swap"
+    rel="stylesheet"
+  />
+
+  <link rel="stylesheet" href="style.css" />
+</head>
+
+<body>
+
+  <!-- ── HUD: top-left status ──────────────────────────────── -->
+  <div id="hud-left" aria-label="Status">
+    <span id="hud-stage">STAGE 0 // THE WARNING</span>
+    <div id="hud-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+      <span id="hud-bar-fill"></span>
+    </div>
+    <span id="hud-label">CORRUPTION: 0%</span>
+  </div>
+
+  <!-- ── HUD: top-right click counter ──────────────────────── -->
+  <div id="hud-right" aria-live="polite">
+    <span id="counter-label">Mistakes Made</span>
+    <span id="counter-value">0</span>
+  </div>
+
+  <!-- ── Sound toggle ──────────────────────────────────────── -->
+  <button id="mute-btn" aria-label="Toggle sound" title="Toggle sound">🔊</button>
+
+  <!-- ── Main arena ────────────────────────────────────────── -->
+  <main id="arena">
+
+    <!-- Warning text (cycles through messages on each click) -->
+    <div id="warning-block" aria-live="polite">
+      <p id="warning-text">DO NOT CLICK THE BUTTON.</p>
+      <p id="warning-sub"></p>
+    </div>
+
+    <!-- THE BUTTON + tooltip -->
+    <div id="button-wrap">
+      <button
+        id="the-button"
+        aria-label="The Button — do not click"
+        title="Do not click"
+      >
+        <span id="btn-label">DO NOT<br>CLICK</span>
+      </button>
+
+      <!-- Tooltip shown on hover -->
+      <div id="tooltip" role="tooltip" aria-hidden="true"></div>
+    </div>
+
+    <!-- Hint text below the button -->
+    <p id="hint-text"></p>
+
+  </main>
+
+  <!-- ── Toast notification container ─────────────────────── -->
+  <div id="toast-container" aria-live="assertive"></div>
+
+  <script src="script.js"></script>
+</body>
+</html>
