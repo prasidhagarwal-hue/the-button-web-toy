@@ -1,16 +1,21 @@
 /* ============================================================
    THE BUTTON — script.js
-   Milestone 1: Foundation
+   Milestone 2: Core Interactions
+   ============================================================
 
-   Modules (in order):
-     1. CONFIG      — static data (messages, tooltips)
-     2. STATE       — in-memory state + localStorage
-     3. DOM         — cached element references
-     4. AUDIO       — Web Audio API tone generator
-     5. EFFECTS     — shake, flash, toast
-     6. BUTTON      — click & hover interaction handlers
-     7. IDLE        — idle watcher (stage 0 escalation)
-     8. INIT        — bootstrap
+   Modules:
+     1. CONFIG      — Static data, messages, easter eggs
+     2. STATE       — State management & LocalStorage
+     3. DOM         — Element caching
+     4. AUDIO       — Web Audio API procedural synthesis
+     5. EFFECTS     — Visual feedback (shake, flash, toast, dodge)
+     6. BUTTON      — Core click, multiple clicks, double-click
+     7. MOTION      — Mouse 3D tilt, proximity & dizzy detection
+     8. KEYBOARD    — Space/Enter, word recognition, Konami Code
+     9. SCROLL      — Classified basement reveal & interactive wire
+    10. IDLE        — Snooze / wake-up loop
+    11. CONTEXT     — Right-click custom menu easter egg
+    12. INIT        — Bootstrap
    ============================================================ */
 
 (function () {
@@ -20,129 +25,125 @@
      1. CONFIG
      ========================================================== */
 
-  const STORAGE_KEY = 'theButton_m1';
+  const STORAGE_KEY = 'theButton_m2';
 
-  /** Warning messages shown in sequence after each click */
   const WARNINGS = [
     'DO NOT CLICK THE BUTTON.',
     'I TOLD YOU NOT TO CLICK IT.',
     'WHY WOULD YOU DO THAT.',
-    'ARE YOU HAPPY NOW?',
+    'ARE YOU PROUD OF YOURSELF?',
     'You clicked it again.',
     'This is getting out of hand.',
-    'I cannot stop you, can I.',
+    'The button has feelings, you know.',
     'FINE. KEEP CLICKING.',
-    'THE BUTTON REMEMBERS.',
-    'mistakes were made.',
+    'THE BUTTON WILL REMEMBER THIS.',
+    'Mistakes were made.',
+    'You are actively defying instructions.',
+    'There is no prize at the end of this.',
+    'Seriously. Step away from the mouse.',
+    'SYSTEM INTEGRITY: QUESTIONABLE.',
+    'You really cannot help yourself, can you?'
   ];
 
-  /** Sub-line messages (shown below main warning after click 1) */
   const SUB_WARNINGS = [
-    'The button will remember this.',
-    'Something has changed.',
-    'This was not supposed to happen.',
-    'Resistance is futile.',
-    'Keep going. See what happens.',
-    '...why.',
-    'You are still here.',
-    'The button is watching.',
+    'Something has shifted.',
+    'The button is watching your cursor.',
+    'This was strictly prohibited.',
+    'Resistance is mathematically futile.',
+    'Keep going and see what breaks.',
+    'Your persistence is alarming.',
+    'Containment failure probability rising.',
+    'The button has lodged a formal complaint.'
   ];
 
-  /** Tooltip messages shown on button hover */
   const TOOLTIPS = [
     "I'm serious.",
-    "Don't.",
+    "Don't do it.",
     "You will regret this.",
-    "Last chance.",
+    "Last chance to turn back.",
     "Please, no.",
-    "I'm warning you.",
+    "Step away slowly.",
+    "Personal space, human.",
+    "I can feel your cursor hovering."
   ];
 
-  /** Idle escalation messages (Stage 0, before first click) */
-  const IDLE_MESSAGES = [
-    { delay: 15, text: '...Why are you still here?' },
-    { delay: 45, text: 'Fine. Do what you want. Don\'t blame me.' },
-    { delay: 90, text: 'I\'m waiting...' },
-    { delay: 150, text: 'You are remarkably patient. Or away from keyboard.' },
+  const KONAMI_CODE = [
+    'ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown',
+    'ArrowLeft', 'ArrowRight', 'ArrowLeft', 'ArrowRight',
+    'b', 'a'
   ];
-
 
   /* ==========================================================
      2. STATE
      ========================================================== */
 
-  /**
-   * Default state shape.
-   * All fields that need to persist go here.
-   */
   const DEFAULT_STATE = {
-    clickCount:      0,
-    firstVisitDate:  null,
-    lastVisitDate:   null,
-    firstClickDelay: null,   // ms from page load to very first click
-    totalTime:       0,      // cumulative seconds on page
+    clickCount:        0,
+    doubleClicks:      0,
+    firstVisitDate:    null,
+    lastVisitDate:     null,
+    stage:             0,
+    cablePulled:       false,
+    konamiUnlocked:    false,
+    apologiesGiven:    0
   };
 
   let state = { ...DEFAULT_STATE };
-  const pageLoadTime  = Date.now();
-  let   sessionStart  = Date.now();
+  let sessionStart = Date.now();
 
   function loadState() {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (raw) state = { ...DEFAULT_STATE, ...JSON.parse(raw) };
-    } catch (_) { /* silent — localStorage may be unavailable */ }
+    } catch (_) { /* LocalStorage fallback */ }
   }
 
   function saveState() {
     try {
-      const now = Date.now();
-      state.totalTime      += Math.floor((now - sessionStart) / 1000);
-      sessionStart          = now;
-      state.lastVisitDate   = new Date().toISOString();
+      state.lastVisitDate = new Date().toISOString();
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-    } catch (_) { /* silent */ }
+    } catch (_) { /* Silent */ }
   }
 
-
   /* ==========================================================
-     3. DOM
+     3. DOM CACHE
      ========================================================== */
 
-  /** All element references cached here — never queried inside event handlers */
   const D = {};
 
   function cacheDOM() {
     const g = id => document.getElementById(id);
-    D.body          = document.body;
-    D.hudLeft       = g('hud-left');
-    D.hudStage      = g('hud-stage');
-    D.hudBarFill    = g('hud-bar-fill');
-    D.hudLabel      = g('hud-label');
-    D.hudRight      = g('hud-right');
-    D.counterValue  = g('counter-value');
-    D.muteBtn       = g('mute-btn');
-    D.warningText   = g('warning-text');
-    D.warningSub    = g('warning-sub');
-    D.buttonWrap    = g('button-wrap');
-    D.button        = g('the-button');
-    D.btnLabel      = g('btn-label');
-    D.tooltip       = g('tooltip');
-    D.hintText      = g('hint-text');
-    D.toastContainer= g('toast-container');
+    D.body            = document.body;
+    D.hudLeft         = g('hud-left');
+    D.hudStage        = g('hud-stage');
+    D.hudBarFill      = g('hud-bar-fill');
+    D.hudLabel        = g('hud-label');
+    D.hudRight        = g('hud-right');
+    D.counterValue    = g('counter-value');
+    D.muteBtn         = g('mute-btn');
+    D.arena           = g('arena');
+    D.warningText     = g('warning-text');
+    D.warningSub      = g('warning-sub');
+    D.buttonWrap      = g('button-wrap');
+    D.button          = g('the-button');
+    D.btnLabel        = g('btn-label');
+    D.tooltip         = g('tooltip');
+    D.hintText        = g('hint-text');
+    D.scrollIndicator = g('scroll-indicator');
+    D.basement        = g('basement');
+    D.wireBtn         = g('wire-btn');
+    D.wireStatus      = g('wire-status');
+    D.contextMenu     = g('custom-context-menu');
+    D.toastContainer  = g('toast-container');
   }
 
-
   /* ==========================================================
-     4. AUDIO ENGINE
-     Web Audio API — generates tones programmatically.
-     No audio files needed, no network requests.
+     4. AUDIO ENGINE (Web Audio API)
      ========================================================== */
 
   let audioCtx = null;
   let isMuted  = false;
 
-  /** Lazily creates / resumes the AudioContext. */
   function getAudioCtx() {
     if (!audioCtx) {
       audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -151,15 +152,7 @@
     return audioCtx;
   }
 
-  /**
-   * Plays a single tone.
-   * @param {number} freq      – frequency in Hz
-   * @param {number} duration  – note duration in seconds
-   * @param {string} type      – OscillatorNode type ('sine'|'square'|'sawtooth'|'triangle')
-   * @param {number} gain      – peak gain (0–1)
-   * @param {number} [delay=0] – schedule offset from now in seconds
-   */
-  function playTone(freq, duration, type = 'sine', gain = 0.22, delay = 0) {
+  function playTone(freq, duration, type = 'sine', gain = 0.2, delay = 0) {
     if (isMuted) return;
     try {
       const ctx = getAudioCtx();
@@ -174,51 +167,80 @@
       env.gain.exponentialRampToValueAtTime(0.001, t + duration);
       osc.start(t);
       osc.stop(t + duration + 0.01);
-    } catch (_) { /* silent — AudioContext may be blocked */ }
+    } catch (_) {}
   }
 
-  /** Preset sounds */
   const Sound = {
-    /** Short click blip — pitch rises slightly with click count */
     click() {
-      const freq = Math.min(160 + state.clickCount * 3, 340);
-      playTone(freq, 0.13, 'square', 0.14);
-      playTone(freq * 1.5, 0.08, 'sine', 0.06, 0.06);
+      const base = Math.min(180 + state.clickCount * 12, 520);
+      playTone(base, 0.12, 'square', 0.15);
+      playTone(base * 1.5, 0.08, 'sine', 0.08, 0.04);
     },
-
-    /** Warning sting (idle / idle-escalation) */
-    warn() {
-      playTone(90,  0.7, 'sawtooth', 0.10);
-      playTone(110, 0.4, 'sawtooth', 0.07, 0.1);
+    recoil() {
+      playTone(550, 0.08, 'sawtooth', 0.22);
+      playTone(720, 0.15, 'sawtooth', 0.25, 0.08);
+      playTone(340, 0.25, 'triangle', 0.2, 0.16);
     },
+    dizzy() {
+      const ctx = getAudioCtx();
+      if (isMuted || !ctx) return;
+      try {
+        const t = ctx.currentTime;
+        const osc = ctx.createOscillator();
+        const env = ctx.createGain();
+        osc.connect(env);
+        env.connect(ctx.destination);
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(400, t);
+        osc.frequency.linearRampToValueAtTime(120, t + 0.6);
+        env.gain.setValueAtTime(0.15, t);
+        env.gain.exponentialRampToValueAtTime(0.001, t + 0.6);
+        osc.start(t);
+        osc.stop(t + 0.61);
+      } catch (_) {}
+    },
+    snooze() {
+      playTone(130, 0.7, 'sine', 0.1);
+      playTone(110, 0.9, 'sine', 0.08, 0.4);
+    },
+    wake() {
+      playTone(320, 0.08, 'triangle', 0.18);
+      playTone(640, 0.15, 'sine', 0.2, 0.06);
+    },
+    secret() {
+      // 8-bit arpeggio: C5, E5, G5, C6
+      const notes = [523.25, 659.25, 783.99, 1046.50];
+      notes.forEach((n, i) => playTone(n, 0.15, 'square', 0.16, i * 0.1));
+    },
+    zap() {
+      playTone(80, 0.35, 'sawtooth', 0.3);
+      playTone(240, 0.2, 'square', 0.25, 0.05);
+      playTone(60, 0.4, 'sawtooth', 0.35, 0.12);
+    },
+    pop() {
+      playTone(480, 0.05, 'sine', 0.12);
+    }
   };
 
-
   /* ==========================================================
-     5. EFFECTS
+     5. EFFECTS & TOASTS
      ========================================================== */
 
-  /**
-   * Temporarily adds a CSS class to <body>, then removes it
-   * after the animation ends (or a fallback timeout).
-   */
-  function addBodyClass(cls, fallbackMs = 600) {
+  function addBodyClass(cls, fallbackMs = 500) {
     if (D.body.classList.contains(cls)) return;
     D.body.classList.add(cls);
     const cleanup = () => D.body.classList.remove(cls);
     D.body.addEventListener('animationend', cleanup, { once: true });
-    setTimeout(cleanup, fallbackMs);   // safety fallback
+    setTimeout(cleanup, fallbackMs);
   }
 
-  /** Creates a brief full-screen flash overlay. */
-  function triggerFlash(colorRgba = 'rgba(255,255,255,0.12)') {
+  function triggerFlash(colorRgba = 'rgba(255,255,255,0.15)') {
     const el = document.createElement('div');
     el.style.cssText = `
       position:fixed;inset:0;
       background:${colorRgba};
       pointer-events:none;z-index:9999;
-      animation:none;opacity:1;
-      transition:opacity 0.28s ease;
+      opacity:1;transition:opacity 0.3s ease;
     `;
     document.body.appendChild(el);
     requestAnimationFrame(() => {
@@ -227,19 +249,12 @@
     });
   }
 
-  /**
-   * Shows a toast notification.
-   * @param {string} title   – bold first line
-   * @param {string} body    – smaller second line
-   * @param {number} [ms=3600] – auto-dismiss delay in ms
-   */
-  function showToast(title, body, ms = 3600) {
+  function showToast(title, body, ms = 3800) {
     const t = document.createElement('div');
     t.className = 'toast';
     t.innerHTML = `<div class="toast-title">${title}</div><div class="toast-body">${body}</div>`;
     D.toastContainer.appendChild(t);
 
-    // Trigger CSS transition on next frame
     requestAnimationFrame(() => requestAnimationFrame(() => t.classList.add('show')));
 
     setTimeout(() => {
@@ -248,189 +263,577 @@
     }, ms);
   }
 
-
   /* ==========================================================
-     6. BUTTON — Interaction handlers
+     6. BUTTON — Core Click & Progression
      ========================================================== */
 
-  // Index trackers for cycling through message arrays
-  let warningIdx = 1;   // start at 1; index 0 is the initial text set in HTML
+  let warningIdx = 1;
   let subIdx     = 0;
+  let lastClickTime = 0;
+  let isDormant = false;
 
-  /**
-   * Called on every single click of THE BUTTON.
-   */
   function handleClick(e) {
-    state.clickCount++;
+    const now = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+    const timeSinceLast = now - lastClickTime;
+    lastClickTime = now;
 
-    // Record time of very first click
-    if (state.firstClickDelay === null) {
-      state.firstClickDelay = Date.now() - pageLoadTime;
+    // Wake up if sleeping
+    if (isDormant) {
+      wakeUp('click');
     }
 
-    // --- Feedback: sound ---
+    // Double-click detection (< 300ms)
+    if (timeSinceLast < 300 && timeSinceLast > 10) {
+      handleDoubleClick();
+      return;
+    }
+
+    executeNormalClick();
+  }
+
+  function executeNormalClick() {
+    state.clickCount++;
+
+    // Audio blip
     Sound.click();
 
-    // --- Feedback: button flash class ---
+    // Visual button ripple flash
     D.button.classList.add('clicked');
-    setTimeout(() => D.button.classList.remove('clicked'), 220);
+    setTimeout(() => D.button.classList.remove('clicked'), 200);
 
-    // --- Feedback: screen shake (after first click) ---
-    if (state.clickCount > 1) {
+    // Screen shake on escalation
+    if (state.clickCount >= 3) {
       addBodyClass('shake');
     }
 
-    // --- Feedback: screen flash ---
-    if (state.clickCount === 1) {
-      triggerFlash('rgba(240, 80, 80, 0.10)');
-    }
-
-    // --- UI: warning text cycle ---
-    D.warningText.textContent = WARNINGS[Math.min(warningIdx, WARNINGS.length - 1)];
-    warningIdx++;
-
-    // --- UI: sub-warning (appears after click 1) ---
-    if (state.clickCount >= 1) {
-      D.warningSub.textContent = SUB_WARNINGS[subIdx % SUB_WARNINGS.length];
-      D.warningSub.classList.add('has-text');
-      subIdx++;
-    }
-
-    // --- UI: button label mutation ---
-    updateButtonLabel();
-
-    // --- UI: click counter ---
+    // Pop counter
+    D.counterValue.classList.add('pop');
+    setTimeout(() => D.counterValue.classList.remove('pop'), 160);
     D.counterValue.textContent = state.clickCount;
     D.hudRight.classList.add('visible');
 
-    // --- UI: hint text ---
-    if (state.clickCount === 1) {
-      D.hintText.textContent = 'Something has changed.';
-    } else if (state.clickCount === 5) {
-      D.hintText.textContent = 'Keep going...';
-    } else if (state.clickCount === 10) {
-      D.hintText.textContent = 'You\'re getting closer to something.';
-    }
+    // Progression & Corruption updates
+    updateProgression();
 
-    // --- Toast on first click ---
-    if (state.clickCount === 1) {
-      showToast('I said DO NOT click it.', 'You clicked it anyway.', 3200);
+    // Button label mutation
+    updateButtonLabel();
+
+    // Warnings cycling
+    D.warningText.textContent = WARNINGS[Math.min(warningIdx, WARNINGS.length - 1)];
+    warningIdx = (warningIdx + 1) % WARNINGS.length;
+
+    // Subtext message
+    D.warningSub.textContent = SUB_WARNINGS[subIdx % SUB_WARNINGS.length];
+    D.warningSub.classList.add('has-text');
+    subIdx++;
+
+    // Evasive jitter in Stage 2+ (10+ clicks)
+    if (state.clickCount >= 10) {
+      applyButtonDodge();
     }
 
     saveState();
   }
 
   /**
-   * Changes the button label based on click count.
-   * Keeps text short so it fits inside the circle.
+   * INTERACTION 2: Multiple Click Progression
+   * Visibly changes the website themes, corruptions, and triggers stage remarks.
    */
+  function updateProgression() {
+    const c = state.clickCount;
+    let stageNum = 0;
+    let stageName = 'STAGE 0 // THE WARNING';
+    let corruption = Math.min(Math.round(c * 3.5), 100);
+
+    // Progress bar fill & corruption %
+    D.hudBarFill.style.width = corruption + '%';
+    D.hudLabel.textContent = `CORRUPTION: ${corruption}%`;
+
+    // Stage milestones
+    if (c >= 20) {
+      stageNum = 3;
+      stageName = 'STAGE 3 // CHAOS PROTOCOL';
+      D.body.className = 'stage-3';
+    } else if (c >= 10) {
+      stageNum = 2;
+      stageName = 'STAGE 2 // ESCALATION';
+      D.body.className = 'stage-2';
+    } else if (c >= 5) {
+      stageNum = 1.5;
+      stageName = 'STAGE 1.5 // DEFIANCE';
+      D.body.className = 'stage-1';
+    } else if (c >= 1) {
+      stageNum = 1;
+      stageName = 'STAGE 1 // FIRST CONTACT';
+      D.body.className = 'stage-1';
+    }
+
+    D.hudStage.textContent = stageName;
+
+    // Milestone toasts
+    if (c === 1) {
+      triggerFlash('rgba(255, 71, 87, 0.2)');
+      showToast('⚠️ Containment Breach', 'You clicked it. You were explicitly told not to.', 3500);
+      D.hintText.textContent = 'Hint: The button remembers every transgression.';
+    } else if (c === 5) {
+      showToast('🔥 Agitation Detected', 'The button is getting warm. Thermal sensors spiking.', 3500);
+      D.hintText.textContent = 'Hint: Rapid clicks will only make it angrier.';
+    } else if (c === 10) {
+      triggerFlash('rgba(255, 165, 2, 0.25)');
+      showToast('⚡ STAGE 2 UNLOCKED', 'The button has acquired autonomous evasive instincts.', 4000);
+      D.hintText.textContent = 'Notice: It is actively attempting to avoid your cursor.';
+    } else if (c === 20) {
+      triggerFlash('rgba(224, 86, 253, 0.3)');
+      showToast('🚨 SYSTEM OVERLOAD', 'Containment is breaking down. Have mercy on the button.', 4500);
+    }
+  }
+
+  /**
+   * INTERACTION 3: Double-Click Interaction
+   * Violent recoil, alarm squeak, outrage text, and impatience penalty.
+   */
+  function handleDoubleClick() {
+    state.doubleClicks++;
+    state.clickCount += 2; // Penalty mistakes
+
+    Sound.recoil();
+    triggerFlash('rgba(255, 71, 87, 0.35)');
+    addBodyClass('shake', 600);
+
+    // Apply violent recoil animation
+    D.button.classList.add('recoil');
+    setTimeout(() => D.button.classList.remove('recoil'), 600);
+
+    // Dynamic reaction text
+    const prevLabel = D.btnLabel.innerHTML;
+    D.btnLabel.innerHTML = 'OW! ⚡<br>TOO FAST!';
+    setTimeout(() => { updateButtonLabel(); }, 1400);
+
+    D.warningText.textContent = 'WAS ONE CLICK NOT ENOUGH?!';
+    D.warningSub.textContent = 'Double-clicking constitutes aggravated button assault.';
+    D.warningSub.classList.add('has-text');
+
+    D.counterValue.textContent = state.clickCount;
+    D.counterValue.classList.add('pop');
+    setTimeout(() => D.counterValue.classList.remove('pop'), 200);
+
+    showToast('⚡ Impatience Detected', 'Double clicking does not grant a speedrun multiplier.', 3600);
+    updateProgression();
+    saveState();
+  }
+
   function updateButtonLabel() {
+    if (D.body.classList.contains('disco-mode')) {
+      D.btnLabel.innerHTML = 'PARTY<br>MODE';
+      return;
+    }
     const labels = [
-      'DO NOT\nCLICK',
-      'YOU\nCLICKED IT',
+      'DO NOT<br>CLICK',
+      'YOU<br>CLICKED IT',
       'STOP.',
       'PLEASE.',
       'WHY.',
       'ENOUGH.',
       'NO.',
-      'STOP\nIT',
+      'STOP<br>IT',
+      'HAVE<br>MERCY',
       '...',
       'FINE.',
+      'AGAIN?!',
+      'WHY ME',
+      'QUIT IT'
     ];
-    const raw = labels[Math.min(state.clickCount, labels.length - 1)];
-    D.btnLabel.innerHTML = raw.replace(/\n/g, '<br>');
+    const index = Math.min(state.clickCount, labels.length - 1);
+    D.btnLabel.innerHTML = labels[index];
   }
 
-  /** Shows a tooltip on button hover. */
-  function handleMouseEnter() {
-    const tip = TOOLTIPS[Math.floor(Math.random() * TOOLTIPS.length)];
-    D.tooltip.textContent = tip;
-    D.tooltip.setAttribute('aria-hidden', 'false');
-    D.tooltip.classList.add('visible');
+  function applyButtonDodge() {
+    // Shifts button by random offset (-28px to +28px)
+    const dx = (Math.random() * 56 - 28).toFixed(1);
+    const dy = (Math.random() * 40 - 20).toFixed(1);
+    document.documentElement.style.setProperty('--dodge-x', `${dx}px`);
+    document.documentElement.style.setProperty('--dodge-y', `${dy}px`);
   }
-
-  /** Hides the tooltip when mouse leaves. */
-  function handleMouseLeave() {
-    D.tooltip.classList.remove('visible');
-    D.tooltip.setAttribute('aria-hidden', 'true');
-  }
-
 
   /* ==========================================================
-     7. IDLE WATCHER
-     Escalates the warning text while the user hesitates
-     on Stage 0 (before their first click).
+     7. MOTION — 3D Tilt, Proximity & Dizzy Shake
      ========================================================== */
 
-  let idleSeconds  = 0;
-  let idleMsgIndex = 0;
+  let mousePositions = [];
+  let isDizzy = false;
+
+  function handleMouseMove(e) {
+    resetIdle();
+
+    if (isDormant) {
+      wakeUp('mouse');
+    }
+
+    const rect = D.button.getBoundingClientRect();
+    const btnCenterX = rect.left + rect.width / 2;
+    const btnCenterY = rect.top + rect.height / 2;
+
+    const dx = e.clientX - btnCenterX;
+    const dy = e.clientY - btnCenterY;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+
+    // 1. 3D Tilt: Button looks towards cursor
+    if (!isDizzy && !isDormant) {
+      const maxAngle = 18;
+      const tiltY = Math.max(Math.min(dx / 25, maxAngle), -maxAngle);
+      const tiltX = Math.max(Math.min(-dy / 25, maxAngle), -maxAngle);
+      document.documentElement.style.setProperty('--tilt-x', `${tiltX.toFixed(1)}deg`);
+      document.documentElement.style.setProperty('--tilt-y', `${tiltY.toFixed(1)}deg`);
+    }
+
+    // 2. Proximity tooltips: Reacts when cursor creeps within 130px
+    if (dist < 130 && dist > 50 && !D.tooltip.classList.contains('visible')) {
+      const tips = [
+        'I see you creeping up...',
+        "Don't get any closer.",
+        'Personal space violation!',
+        'Step away from the cursor.'
+      ];
+      D.tooltip.textContent = tips[Math.floor(Math.random() * tips.length)];
+      D.tooltip.classList.add('visible');
+    } else if (dist >= 140 && D.tooltip.classList.contains('visible')) {
+      D.tooltip.classList.remove('visible');
+    }
+
+    // 3. Erratic mouse movement / shake detection (Dizzy interaction)
+    const now = performance.now();
+    mousePositions.push({ x: e.clientX, y: e.clientY, t: now });
+    // Keep last 450ms
+    mousePositions = mousePositions.filter(p => now - p.t < 450);
+
+    if (mousePositions.length > 18 && !isDizzy) {
+      let directionChanges = 0;
+      let totalDistance = 0;
+      for (let i = 2; i < mousePositions.length; i++) {
+        const dx1 = mousePositions[i - 1].x - mousePositions[i - 2].x;
+        const dx2 = mousePositions[i].x - mousePositions[i - 1].x;
+        if ((dx1 > 0 && dx2 < 0) || (dx1 < 0 && dx2 > 0)) {
+          directionChanges++;
+        }
+        totalDistance += Math.abs(dx2);
+      }
+
+      if (directionChanges >= 4 && totalDistance > 600) {
+        triggerDizzy();
+      }
+    }
+  }
+
+  function triggerDizzy() {
+    isDizzy = true;
+    Sound.dizzy();
+    D.button.classList.add('dizzy');
+    D.warningSub.textContent = '🌀 The Button got dizzy from your frantic mouse shaking!';
+    D.warningSub.classList.add('has-text');
+    showToast('🌀 Motion Sickness', 'The button is feeling nauseous from your erratic cursor.', 3400);
+
+    setTimeout(() => {
+      D.button.classList.remove('dizzy');
+      isDizzy = false;
+      document.documentElement.style.setProperty('--tilt-x', '0deg');
+      document.documentElement.style.setProperty('--tilt-y', '0deg');
+    }, 1250);
+  }
+
+  /* ==========================================================
+     8. KEYBOARD INTERACTION & EASTER EGGS
+     ========================================================== */
+
+  let keyBuffer = [];
+  let konamiIndex = 0;
+
+  function handleKeyDown(e) {
+    resetIdle();
+    if (isDormant) wakeUp('keyboard');
+
+    // Space or Enter on the button or document
+    if (e.code === 'Space' || e.code === 'Enter') {
+      if (document.activeElement === D.button || e.target === document.body) {
+        e.preventDefault();
+        handleClick();
+        return;
+      }
+    }
+
+    // Konami code detection
+    if (e.key === KONAMI_CODE[konamiIndex]) {
+      konamiIndex++;
+      if (konamiIndex === KONAMI_CODE.length) {
+        activateKonamiEasterEgg();
+        konamiIndex = 0;
+      }
+    } else {
+      konamiIndex = (e.key === KONAMI_CODE[0]) ? 1 : 0;
+    }
+
+    // Word detection buffer
+    if (e.key.length === 1 && /[a-zA-Z]/.test(e.key)) {
+      keyBuffer.push(e.key.toLowerCase());
+      if (keyBuffer.length > 12) keyBuffer.shift();
+      checkKeyWords();
+    }
+  }
+
+  function checkKeyWords() {
+    const str = keyBuffer.join('');
+
+    if (str.endsWith('sorry')) {
+      state.apologiesGiven++;
+      Sound.pop();
+      D.warningSub.textContent = `Apology #${state.apologiesGiven} noted. (Still does not erase mistakes).`;
+      D.warningSub.classList.add('has-text');
+      showToast('📜 Apology Logged', 'The button accepts your apology, but refuses forgiveness.', 3500);
+      keyBuffer = [];
+      saveState();
+    } else if (str.endsWith('please')) {
+      Sound.pop();
+      D.warningSub.textContent = 'Politeness detected. Request denied.';
+      D.warningSub.classList.add('has-text');
+      showToast('🎩 Etiquette Noted', 'Good manners will not disarm the button.', 3000);
+      keyBuffer = [];
+    } else if (str.endsWith('help')) {
+      Sound.pop();
+      D.warningSub.textContent = 'Help is unavailable in this sector.';
+      D.warningSub.classList.add('has-text');
+      keyBuffer = [];
+    } else if (str.endsWith('stop')) {
+      Sound.pop();
+      D.warningSub.textContent = "YOU stop! You're the one clicking it!";
+      D.warningSub.classList.add('has-text');
+      keyBuffer = [];
+    } else if (str.endsWith('reset')) {
+      Sound.pop();
+      addBodyClass('shake', 300);
+      D.warningSub.textContent = 'YOU CANNOT UN-CLICK THE PAST.';
+      D.warningSub.classList.add('has-text');
+      keyBuffer = [];
+    }
+  }
+
+  /**
+   * EASTER EGG 1: Konami Code Party Mode
+   */
+  function activateKonamiEasterEgg() {
+    state.konamiUnlocked = true;
+    Sound.secret();
+    D.body.classList.toggle('disco-mode');
+
+    const isActive = D.body.classList.contains('disco-mode');
+    if (isActive) {
+      triggerFlash('rgba(255, 0, 128, 0.4)');
+      updateButtonLabel();
+      D.warningText.textContent = '🌈 DISCO PROTOCOL ACTIVATED!';
+      D.warningSub.textContent = 'You entered the ancient code. Nothing is fixed, but it looks fabulous.';
+      D.warningSub.classList.add('has-text');
+      showToast('✨ CHEAT CODE UNLOCKED', '30 Extra Lives added to The Button (not you).', 5000);
+    } else {
+      D.warningText.textContent = 'Party mode dismissed. Back to the void.';
+      updateButtonLabel();
+    }
+    saveState();
+  }
+
+  /* ==========================================================
+     9. SCROLL INTERACTION & CLASSIFIED BASEMENT
+     ========================================================== */
+
+  let hasScrolledDown = false;
+
+  function handleScroll() {
+    resetIdle();
+    const scrollY = window.scrollY;
+
+    if (scrollY > 180 && !hasScrolledDown) {
+      hasScrolledDown = true;
+      showToast('📁 Archive Breached', 'You scrolled into the restricted incident logs.', 3600);
+      D.hintText.textContent = 'Observation: You are exploring the maintenance tunnels.';
+    }
+
+    // Interactive emergency cable
+    if (D.wireBtn && !D.wireBtn._attached) {
+      D.wireBtn._attached = true;
+      D.wireBtn.addEventListener('click', () => {
+        Sound.zap();
+        triggerFlash('rgba(255, 71, 87, 0.45)');
+        addBodyClass('shake', 500);
+        state.cablePulled = true;
+        D.wireBtn.textContent = 'CABLE SEVERED ⚡';
+        D.wireBtn.style.background = 'var(--danger)';
+        D.wireBtn.style.color = '#fff';
+        D.wireStatus.textContent = '⚠️ EMERGENCY FAULT: 10,000V backfed into The Button.';
+        showToast('⚡ CABLE PULLED', 'A severe electric jolt was sent to The Button!', 3800);
+        D.warningSub.textContent = 'THE BUTTON FELT THAT CABLE SNAPPING.';
+        D.warningSub.classList.add('has-text');
+        saveState();
+      });
+    }
+  }
+
+  /* ==========================================================
+     10. IDLE & SNOOZE WATCHER
+     ========================================================== */
+
+  let idleSeconds = 0;
 
   function startIdleWatcher() {
     setInterval(() => {
       idleSeconds++;
 
-      // Only run escalation before the first click
-      if (state.clickCount > 0 || idleMsgIndex >= IDLE_MESSAGES.length) return;
+      // Stage 0 early hesitation warnings
+      if (state.clickCount === 0) {
+        if (idleSeconds === 7) {
+          D.warningSub.textContent = '...Why are you hesitating?';
+          D.warningSub.classList.add('has-text');
+        } else if (idleSeconds === 18) {
+          D.warningSub.textContent = "Don't stare at it. Just walk away.";
+          D.warningSub.classList.add('has-text');
+        }
+      }
 
-      const next = IDLE_MESSAGES[idleMsgIndex];
-      if (next && idleSeconds >= next.delay) {
-        D.warningSub.textContent = next.text;
-        D.warningSub.classList.add('has-text');
-        idleMsgIndex++;
-        Sound.warn();
+      // Snooze condition: 13 seconds of zero user interaction
+      if (idleSeconds >= 13 && !isDormant) {
+        fallAsleep();
       }
     }, 1000);
   }
 
-  /** Reset idle counter whenever the user interacts. */
+  function fallAsleep() {
+    isDormant = true;
+    D.button.classList.add('sleeping');
+    D.btnLabel.innerHTML = '💤<br>ZZZ...';
+    D.warningSub.textContent = 'The Button has fallen asleep. Do not wake it.';
+    D.warningSub.classList.add('has-text');
+    Sound.snooze();
+  }
+
+  function wakeUp(cause = 'mouse') {
+    isDormant = false;
+    D.button.classList.remove('sleeping');
+    updateButtonLabel();
+    Sound.wake();
+
+    D.warningSub.textContent = "AH! YOU'RE STILL HERE?!";
+    D.warningSub.classList.add('has-text');
+
+    if (cause === 'click') {
+      showToast('⏰ Rude Awakening', 'You clicked the button while it was sound asleep!', 3200);
+    }
+  }
+
   function resetIdle() {
     idleSeconds = 0;
   }
 
+  /* ==========================================================
+     11. CONTEXT MENU EASTER EGG
+     ========================================================== */
+
+  function setupContextMenu() {
+    document.addEventListener('contextmenu', e => {
+      e.preventDefault();
+      const x = Math.min(e.clientX, window.innerWidth - 240);
+      const y = Math.min(e.clientY, window.innerHeight - 200);
+
+      D.contextMenu.style.left = `${x}px`;
+      D.contextMenu.style.top = `${y}px`;
+      D.contextMenu.removeAttribute('hidden');
+    });
+
+    document.addEventListener('click', e => {
+      if (!D.contextMenu.contains(e.target)) {
+        D.contextMenu.setAttribute('hidden', '');
+      }
+    });
+
+    D.contextMenu.addEventListener('click', e => {
+      const btn = e.target.closest('.context-item');
+      if (!btn) return;
+      D.contextMenu.setAttribute('hidden', '');
+
+      const action = btn.dataset.action;
+      Sound.pop();
+
+      if (action === 'apologize') {
+        state.apologiesGiven++;
+        showToast('🕊️ Apology Submitted', 'Button response: "I accept your apology, but not your clicks."', 3800);
+        D.warningSub.textContent = 'A formal treaty was attempted. Results: Inconclusive.';
+        D.warningSub.classList.add('has-text');
+      } else if (action === 'bribe') {
+        showToast('🍪 Virtual Cookie Accepted', 'Nom nom nom... The button ate the cookie. It still hates you.', 4000);
+        D.warningSub.textContent = 'The Button consumed 1x chocolate chip. Mistake count remains unchanged.';
+        D.warningSub.classList.add('has-text');
+      } else if (action === 'inspect') {
+        showToast('🔍 Emotion Scan', 'Sensors indicate: 94% Spite, 6% Glow, 0% Remorse.', 4200);
+      } else if (action === 'delete') {
+        // Funny fake delete
+        D.button.style.opacity = '0';
+        D.button.style.pointerEvents = 'none';
+        showToast('🗑️ Deleting Button...', 'File "the-button.exe" removed from universe.', 1500);
+
+        setTimeout(() => {
+          D.button.style.opacity = '1';
+          D.button.style.pointerEvents = 'auto';
+          Sound.zap();
+          addBodyClass('shake', 400);
+          showToast('💥 Nice Try', 'You cannot delete what you cannot comprehend.', 3500);
+          D.warningSub.textContent = 'Did you really think inspect element could defeat me?';
+          D.warningSub.classList.add('has-text');
+        }, 1200);
+      }
+      saveState();
+    });
+  }
 
   /* ==========================================================
-     8. INIT
+     12. INIT
      ========================================================== */
 
   function init() {
     cacheDOM();
     loadState();
 
-    // Restore click count from previous session
+    // Restore previous state if visited before
     if (state.clickCount > 0) {
       D.counterValue.textContent = state.clickCount;
       D.hudRight.classList.add('visible');
+      updateProgression();
       updateButtonLabel();
-      // Restore warning text to correct position
       warningIdx = Math.min(state.clickCount, WARNINGS.length - 1);
-      D.warningText.textContent = WARNINGS[Math.max(0, warningIdx - 1)];
+      D.warningText.textContent = WARNINGS[warningIdx];
     }
 
-    // Returning visitor greeting
-    if (state.firstVisitDate && state.clickCount > 0) {
-      showToast(
-        '👁️ Welcome back, you poor soul.',
-        `You've made ${state.clickCount} mistakes so far.`,
-        4000
-      );
-    }
-
-    // Record first visit date
     if (!state.firstVisitDate) {
       state.firstVisitDate = new Date().toISOString();
       saveState();
+    } else if (state.clickCount > 0) {
+      showToast(
+        '👁️ Return of the Culprit',
+        `Welcome back. Your ${state.clickCount} previous mistakes have been preserved.`,
+        4200
+      );
     }
 
-    // --- Attach event listeners ---
+    // Attach Event Listeners
+    D.button.addEventListener('click', handleClick);
+    D.button.addEventListener('dblclick', handleDoubleClick);
 
-    // THE BUTTON
-    D.button.addEventListener('click',      handleClick);
-    D.button.addEventListener('mouseenter', handleMouseEnter);
-    D.button.addEventListener('mouseleave', handleMouseLeave);
+    // Hover tooltip
+    D.button.addEventListener('mouseenter', () => {
+      if (!isDormant) {
+        const tip = TOOLTIPS[Math.floor(Math.random() * TOOLTIPS.length)];
+        D.tooltip.textContent = tip;
+        D.tooltip.classList.add('visible');
+      }
+    });
 
-    // Touch: tooltip equivalent via focus
-    D.button.addEventListener('focus',  handleMouseEnter);
-    D.button.addEventListener('blur',   handleMouseLeave);
+    D.button.addEventListener('mouseleave', () => {
+      D.tooltip.classList.remove('visible');
+    });
 
     // Mute toggle
     D.muteBtn.addEventListener('click', () => {
@@ -439,24 +842,25 @@
       D.muteBtn.setAttribute('aria-label', isMuted ? 'Unmute sound' : 'Mute sound');
     });
 
-    // Idle reset on any user interaction
-    ['mousemove', 'keydown', 'scroll', 'click', 'touchstart'].forEach(ev => {
-      document.addEventListener(ev, resetIdle, { passive: true });
-    });
+    // Global interaction listeners
+    window.addEventListener('mousemove', handleMouseMove, { passive: true });
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('scroll', handleScroll, { passive: true });
 
-    // Persist on page exit
-    window.addEventListener('pagehide',      saveState);
-    window.addEventListener('beforeunload',  saveState);
+    // Custom Context Menu Easter Egg
+    setupContextMenu();
 
-    // Start idle watcher
+    // Idle watcher
     startIdleWatcher();
+
+    // Persist on unload
+    window.addEventListener('pagehide', saveState);
+    window.addEventListener('beforeunload', saveState);
   }
 
-  // Boot when DOM is ready
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);
   } else {
     init();
   }
-
 })();

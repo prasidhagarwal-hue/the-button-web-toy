@@ -17,34 +17,34 @@
   <link rel="stylesheet" href="style.css" />
 </head>
 
-<body>
+<body class="stage-0">
 
   <!-- ── HUD: top-left status ──────────────────────────────── -->
-  <div id="hud-left" aria-label="Status">
+  <header id="hud-left" aria-label="Status">
     <span id="hud-stage">STAGE 0 // THE WARNING</span>
     <div id="hud-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
       <span id="hud-bar-fill"></span>
     </div>
     <span id="hud-label">CORRUPTION: 0%</span>
-  </div>
+  </header>
 
   <!-- ── HUD: top-right click counter ──────────────────────── -->
-  <div id="hud-right" aria-live="polite">
+  <aside id="hud-right" aria-live="polite">
     <span id="counter-label">Mistakes Made</span>
     <span id="counter-value">0</span>
-  </div>
+  </aside>
 
   <!-- ── Sound toggle ──────────────────────────────────────── -->
   <button id="mute-btn" aria-label="Toggle sound" title="Toggle sound">🔊</button>
 
-  <!-- ── Main arena ────────────────────────────────────────── -->
+  <!-- ── Main arena (Stage 0 to N) ──────────────────────────── -->
   <main id="arena">
 
     <!-- Warning text (cycles through messages on each click) -->
-    <div id="warning-block" aria-live="polite">
-      <p id="warning-text">DO NOT CLICK THE BUTTON.</p>
+    <section id="warning-block" aria-live="polite">
+      <h1 id="warning-text">DO NOT CLICK THE BUTTON.</h1>
       <p id="warning-sub"></p>
-    </div>
+    </section>
 
     <!-- THE BUTTON + tooltip -->
     <div id="button-wrap">
@@ -56,14 +56,69 @@
         <span id="btn-label">DO NOT<br>CLICK</span>
       </button>
 
-      <!-- Tooltip shown on hover -->
+      <!-- Tooltip shown on hover/proximity -->
       <div id="tooltip" role="tooltip" aria-hidden="true"></div>
     </div>
 
-    <!-- Hint text below the button -->
+    <!-- Hint / Keyboard / Reaction text -->
     <p id="hint-text"></p>
 
+    <!-- Scroll down prompt -->
+    <a href="#basement" id="scroll-indicator" aria-label="Scroll down for classified records">
+      <span class="scroll-arrow">↓</span>
+      <span class="scroll-text">CLASSIFIED INCIDENT LOGS BELOW</span>
+    </a>
+
   </main>
+
+  <!-- ── Classified Records / Under-the-Hood Section ───────── -->
+  <section id="basement" aria-label="Classified Archives">
+    <div class="basement-container">
+      <div class="classified-header">
+        <span class="classified-stamp">TOP SECRET // LEVEL 5</span>
+        <h2 class="classified-title">INCIDENT LOG #084-B: THE BUTTON PROTOCOL</h2>
+        <p class="classified-meta">TERMINAL ARCHIVE // REVISION 4.19 // ACCESS: RESTRICTED</p>
+      </div>
+
+      <div class="classified-grid">
+        <article class="log-card">
+          <div class="log-id">ENTRY 01 — INITIAL CONTAINMENT</div>
+          <p>The Button appeared at 00:00:00. Clear directives were placed on every surface in 72pt bold font reading: <em>"DO NOT CLICK."</em></p>
+          <p class="log-reaction">OBSERVATION: Subject immediately clicked it. Humanity has failed the simplest test.</p>
+        </article>
+
+        <article class="log-card">
+          <div class="log-id">ENTRY 02 — UNUSUAL BEHAVIOR PATTERNS</div>
+          <p>Subject attempted multiple angles: double clicks, erratic mouse twitches, scrolling down into maintenance vaults, and typing words of appeasement.</p>
+          <p class="log-reaction">NOTE: The Button does not negotiate with apologies. But it does remember them.</p>
+        </article>
+
+        <article class="log-card">
+          <div class="log-id">ENTRY 03 — DANGEROUS OVERLOAD WARNING</div>
+          <p>Do NOT enter the ancient sequences (<span class="redacted">↑ ↑ ↓ ↓ ← → ← → B A</span>). Unruly disco contamination may ensue.</p>
+          <p class="log-reaction">STATUS: Containment integrity decaying with every click.</p>
+        </article>
+      </div>
+
+      <div class="basement-footer">
+        <div class="wire-box">
+          <span class="wire-label">⚠️ EMERGENCY OVERRIDE CABLE</span>
+          <button id="wire-btn" class="wire-interactive">DO NOT PULL CABLE</button>
+          <span id="wire-status">Cable intact. Voltage: Nominal.</span>
+        </div>
+        <a href="#arena" class="return-link">↑ RETURN TO THE BUTTON ↑</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Custom Right-Click Context Menu (Easter Egg) ─────── -->
+  <div id="custom-context-menu" class="context-menu" hidden role="menu" aria-label="Button Context Menu">
+    <div class="context-menu-header">BUTTON COMMANDS</div>
+    <button class="context-item" data-action="apologize" role="menuitem">🕊️ Apologize to The Button</button>
+    <button class="context-item" data-action="bribe" role="menuitem">🍪 Bribe with Virtual Cookies</button>
+    <button class="context-item" data-action="inspect" role="menuitem">🔍 Inspect Button's Emotions</button>
+    <button class="context-item" data-action="delete" role="menuitem">🗑️ Attempt to Delete Button</button>
+  </div>
 
   <!-- ── Toast notification container ─────────────────────── -->
   <div id="toast-container" aria-live="assertive"></div>
