@@ -227,6 +227,7 @@
     D.fxCanvas             = g('fx-canvas');
     D.floatingScores       = g('floating-scores');
     D.hudLeft              = g('hud-left');
+    D.hudStatusLed         = g('hud-status-led');
     D.hudStage             = g('hud-stage');
     D.hudBarFill           = g('hud-bar-fill');
     D.hudLabel             = g('hud-label');
@@ -241,6 +242,7 @@
     D.resetBtn             = g('reset-btn');
     D.muteBtn              = g('mute-btn');
     D.arena                = g('arena');
+    D.directiveTag         = g('directive-tag');
     D.warningText          = g('warning-text');
     D.warningSub           = g('warning-sub');
     D.buttonWrap           = g('button-wrap');
@@ -397,24 +399,71 @@
   };
 
   /* ==========================================================
-     5. FX & CANVAS PARTICLES
+     5. FX & CANVAS PARTICLES (Ambient Motes + Confetti Engine)
      ========================================================== */
 
   let canvasCtx = null;
   let particles = [];
+  let ambientMotes = [];
   let animId = null;
+  let mouseX = -9999;
+  let mouseY = -9999;
 
   function initCanvas() {
     if (!D.fxCanvas) return;
     canvasCtx = D.fxCanvas.getContext('2d');
     resizeCanvas();
     window.addEventListener('resize', resizeCanvas, { passive: true });
+
+    window.addEventListener('mousemove', (e) => {
+      mouseX = e.clientX;
+      mouseY = e.clientY;
+    }, { passive: true });
+
+    createAmbientMotes();
+    startAnimLoop();
+
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) {
+        if (animId) {
+          cancelAnimationFrame(animId);
+          animId = null;
+        }
+      } else {
+        startAnimLoop();
+      }
+    });
+  }
+
+  function createAmbientMotes() {
+    ambientMotes = [];
+    const count = Math.min(Math.floor(window.innerWidth / 32), 40);
+    for (let i = 0; i < count; i++) {
+      ambientMotes.push({
+        x: Math.random() * window.innerWidth,
+        y: Math.random() * window.innerHeight,
+        vx: (Math.random() - 0.5) * 0.3,
+        vy: (Math.random() - 0.5) * 0.25 - 0.12,
+        radius: Math.random() * 1.5 + 0.6,
+        baseAlpha: Math.random() * 0.3 + 0.1,
+        alpha: Math.random() * 0.3 + 0.1,
+        phase: Math.random() * Math.PI * 2,
+        phaseSpeed: Math.random() * 0.02 + 0.008
+      });
+    }
   }
 
   function resizeCanvas() {
     if (!D.fxCanvas) return;
     D.fxCanvas.width = window.innerWidth;
     D.fxCanvas.height = window.innerHeight;
+    createAmbientMotes();
+  }
+
+  function startAnimLoop() {
+    if (!animId && canvasCtx) {
+      animId = requestAnimationFrame(animateParticles);
+    }
   }
 
   const FX = {
@@ -441,7 +490,7 @@
         });
       }
 
-      if (!animId) animateParticles();
+      startAnimLoop();
     },
 
     floatScore(text, x, y) {
@@ -478,6 +527,41 @@
     if (!canvasCtx) return;
     canvasCtx.clearRect(0, 0, D.fxCanvas.width, D.fxCanvas.height);
 
+    // 1. Render ambient subtle cosmic dust motes
+    const w = D.fxCanvas.width;
+    const h = D.fxCanvas.height;
+
+    for (let i = 0; i < ambientMotes.length; i++) {
+      const m = ambientMotes[i];
+      m.x += m.vx;
+      m.y += m.vy;
+      m.phase += m.phaseSpeed;
+      m.alpha = m.baseAlpha + Math.sin(m.phase) * 0.12;
+
+      // Soft interactive mouse drift
+      const dx = m.x - mouseX;
+      const dy = m.y - mouseY;
+      const distSq = dx * dx + dy * dy;
+      if (distSq < 14400 && distSq > 0) { // 120px radius
+        const dist = Math.sqrt(distSq);
+        const force = ((120 - dist) / 120) * 0.35;
+        m.x += (dx / dist) * force;
+        m.y += (dy / dist) * force;
+      }
+
+      // Screen wrapping
+      if (m.x < -10) m.x = w + 10;
+      else if (m.x > w + 10) m.x = -10;
+      if (m.y < -10) m.y = h + 10;
+      else if (m.y > h + 10) m.y = -10;
+
+      canvasCtx.beginPath();
+      canvasCtx.arc(m.x, m.y, m.radius, 0, Math.PI * 2);
+      canvasCtx.fillStyle = `rgba(220, 220, 255, ${Math.max(0.02, m.alpha)})`;
+      canvasCtx.fill();
+    }
+
+    // 2. Render active celebration confetti particles
     for (let i = particles.length - 1; i >= 0; i--) {
       const p = particles[i];
       p.x += p.vx;
@@ -487,7 +571,7 @@
       p.rotation += p.vRot;
       p.alpha -= p.decay;
 
-      if (p.alpha <= 0 || p.y > D.fxCanvas.height + 20) {
+      if (p.alpha <= 0 || p.y > h + 20) {
         particles.splice(i, 1);
         continue;
       }
@@ -501,12 +585,7 @@
       canvasCtx.restore();
     }
 
-    if (particles.length > 0) {
-      animId = requestAnimationFrame(animateParticles);
-    } else {
-      animId = null;
-      canvasCtx.clearRect(0, 0, D.fxCanvas.width, D.fxCanvas.height);
-    }
+    animId = requestAnimationFrame(animateParticles);
   }
 
   function addBodyClass(cls, fallbackMs = 500) {
@@ -791,37 +870,60 @@
     D.hudBarFill.style.width = corruption + '%';
     D.hudLabel.textContent = `CORRUPTION: ${corruption}%`;
 
+    let ledColor = '#5a5af8';
+    let directiveText = 'CONTAINMENT DIRECTIVE // LEVEL 0';
+
     // Stage milestones
     if (c >= 50) {
       stageNum = 5;
       stageName = 'STAGE 5 // THE SINGULARITY';
       D.body.className = 'stage-5';
+      ledColor = '#ffd700';
+      directiveText = 'REALITY COLLAPSE // THE SINGULARITY';
     } else if (c >= 35) {
       stageNum = 4;
       stageName = 'STAGE 4 // MELTDOWN';
       D.body.className = 'stage-4';
+      ledColor = '#00ff88';
+      directiveText = 'CODE RED // NUCLEAR MELTDOWN';
     } else if (c >= 20) {
       stageNum = 3;
       stageName = 'STAGE 3 // CHAOS PROTOCOL';
       D.body.className = 'stage-3';
+      ledColor = '#e056fd';
+      directiveText = 'CRITICAL ANOMALY // CHAOS PROTOCOL';
     } else if (c >= 10) {
       stageNum = 2;
       stageName = 'STAGE 2 // ESCALATION';
       D.body.className = 'stage-2';
+      ledColor = '#ffa502';
+      directiveText = 'ANOMALY ALERT // EVASIVE TRAJECTORY';
     } else if (c >= 5) {
       stageNum = 1.5;
       stageName = 'STAGE 1.5 // DEFIANCE';
       D.body.className = 'stage-1';
+      ledColor = '#ff4757';
+      directiveText = 'CONTAINMENT STATUS // COMPROMISED';
     } else if (c >= 1) {
       stageNum = 1;
       stageName = 'STAGE 1 // FIRST CONTACT';
       D.body.className = 'stage-1';
+      ledColor = '#ff4757';
+      directiveText = 'CONTAINMENT STATUS // COMPROMISED';
     } else {
       D.body.className = 'stage-0';
     }
 
     state.stage = stageNum;
     D.hudStage.textContent = stageName;
+
+    if (D.hudStatusLed) {
+      D.hudStatusLed.style.backgroundColor = ledColor;
+      D.hudStatusLed.style.boxShadow = `0 0 10px ${ledColor}`;
+    }
+    if (D.directiveTag) {
+      D.directiveTag.textContent = directiveText;
+    }
 
     // Milestone celebrations
     if (c === 1) {
@@ -1402,6 +1504,13 @@
     D.hudStage.textContent = 'STAGE 0 // THE WARNING';
     D.hudBarFill.style.width = '0%';
     D.hudLabel.textContent = 'CORRUPTION: 0%';
+    if (D.hudStatusLed) {
+      D.hudStatusLed.style.backgroundColor = '';
+      D.hudStatusLed.style.boxShadow = '';
+    }
+    if (D.directiveTag) {
+      D.directiveTag.textContent = 'CONTAINMENT DIRECTIVE // LEVEL 0';
+    }
     D.counterValue.textContent = '0';
     D.scoreValue.textContent = '0';
     D.hudRight.classList.remove('visible');

@@ -19,22 +19,29 @@
 
 <body class="stage-0">
 
-  <!-- ── Canvas for Confetti & Particle FX ─────────────────── -->
+  <!-- ── Ambient Cinematic Overlays ────────────────────────── -->
+  <div class="vignette-overlay" aria-hidden="true"></div>
+  <div class="scanline-overlay" aria-hidden="true"></div>
+
+  <!-- ── Canvas for Ambient Particles & Confetti FX ─────────── -->
   <canvas id="fx-canvas" aria-hidden="true"></canvas>
 
   <!-- ── Floating score point popups ────────────────────────── -->
   <div id="floating-scores" aria-hidden="true"></div>
 
-  <!-- ── HUD: top-left status ──────────────────────────────── -->
+  <!-- ── HUD: top-left telemetry ───────────────────────────── -->
   <header id="hud-left" aria-label="Status">
-    <span id="hud-stage">STAGE 0 // THE WARNING</span>
+    <div class="hud-status-row">
+      <span class="hud-status-led" id="hud-status-led" aria-hidden="true"></span>
+      <span id="hud-stage">STAGE 0 // THE WARNING</span>
+    </div>
     <div id="hud-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
       <span id="hud-bar-fill"></span>
     </div>
     <span id="hud-label">CORRUPTION: 0%</span>
   </header>
 
-  <!-- ── HUD: top-right click & score counter ───────────────── -->
+  <!-- ── HUD: top-right telemetry ───────────────────────────── -->
   <aside id="hud-right" aria-live="polite">
     <div id="hud-score-box">
       <span id="score-label">Anomaly Score</span>
@@ -62,19 +69,23 @@
   <!-- ── Main arena (Stage 0 to N) ──────────────────────────── -->
   <main id="arena">
 
-    <!-- Warning text (cycles through messages on each click) -->
+    <!-- Warning text block -->
     <section id="warning-block" aria-live="polite">
+      <div class="directive-tag" id="directive-tag">CONTAINMENT DIRECTIVE // LEVEL 0</div>
       <h1 id="warning-text">DO NOT CLICK THE BUTTON.</h1>
       <p id="warning-sub"></p>
     </section>
 
-    <!-- THE BUTTON + tooltip -->
+    <!-- THE BUTTON + Physical Milled Collar + Tooltip -->
     <div id="button-wrap">
+      <div class="button-ring-outer" aria-hidden="true"></div>
+      <div class="button-pulse-ring" aria-hidden="true"></div>
       <button
         id="the-button"
         aria-label="The Button — do not click"
         title="Do not click"
       >
+        <span class="btn-core-glow" aria-hidden="true"></span>
         <span id="btn-label">DO NOT<br>CLICK</span>
       </button>
 
