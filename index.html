@@ -32,7 +32,7 @@
   <!-- ── HUD: top-left telemetry ───────────────────────────── -->
   <header id="hud-left" aria-label="Status">
     <div class="hud-status-row">
-      <span class="hud-status-led" id="hud-status-led" aria-hidden="true"></span>
+      <span class="hud-status-led" id="hud-status-led" role="button" tabindex="0" aria-label="Optical status diode" title="Optical Status Diode"></span>
       <span id="hud-stage">STAGE 0 // THE WARNING</span>
     </div>
     <div id="hud-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
@@ -132,7 +132,7 @@
   <section id="basement" aria-label="Classified Archives">
     <div class="basement-container">
       <div class="classified-header">
-        <span class="classified-stamp" id="classified-stamp" title="Click to stamp classified document">TOP SECRET // LEVEL 5</span>
+        <span class="classified-stamp" id="classified-stamp" role="button" tabindex="0" title="Click or press Enter to stamp classified document" aria-label="Stamp document as declassified">TOP SECRET // LEVEL 5</span>
         <h2 class="classified-title">INCIDENT LOG #084-B: THE BUTTON PROTOCOL</h2>
         <p class="classified-meta">TERMINAL ARCHIVE // REVISION 4.19 // ACCESS: RESTRICTED</p>
       </div>
@@ -141,18 +141,18 @@
         <article class="log-card">
           <div class="log-id">ENTRY 01 — INITIAL CONTAINMENT</div>
           <p>The Button appeared at 00:00:00. Clear directives were placed on every surface in 72pt bold font reading: <em>"DO NOT CLICK."</em></p>
-          <p class="log-reaction">OBSERVATION: True purpose: <span class="redacted" data-reveal="DOORBELL FOR COSMIC INTERNET ENTITIES" title="Click or hover to declassify">██████████████████████████████</span></p>
+          <p class="log-reaction">OBSERVATION: True purpose: <span class="redacted" data-reveal="DOORBELL FOR COSMIC INTERNET ENTITIES" role="button" tabindex="0" title="Click or press Enter to declassify">██████████████████████████████</span></p>
         </article>
 
         <article class="log-card">
           <div class="log-id">ENTRY 02 — UNUSUAL BEHAVIOR PATTERNS</div>
           <p>Subject attempted multiple angles: double clicks, erratic mouse twitches, scrolling down into maintenance vaults, and typing words of appeasement.</p>
-          <p class="log-reaction">INTERNAL MEMO: <span class="redacted" data-reveal="THE BUTTON ACTUALLY LOVES ATTENTION" title="Click or hover to declassify">█████████████████████████████████</span></p>
+          <p class="log-reaction">INTERNAL MEMO: <span class="redacted" data-reveal="THE BUTTON ACTUALLY LOVES ATTENTION" role="button" tabindex="0" title="Click or press Enter to declassify">█████████████████████████████████</span></p>
         </article>
 
         <article class="log-card">
           <div class="log-id">ENTRY 03 — DANGEROUS OVERLOAD WARNING</div>
-          <p>Do NOT enter the ancient sequences (<span class="redacted" data-reveal="KONAMI DISCO SEQUENCE" title="Click or hover to declassify">██████████████████████</span>). Unruly disco contamination may ensue.</p>
+          <p>Do NOT enter the ancient sequences (<span class="redacted" data-reveal="KONAMI DISCO SEQUENCE" role="button" tabindex="0" title="Click or press Enter to declassify">██████████████████████</span>). Unruly disco contamination may ensue.</p>
           <p class="log-reaction">STATUS: Containment integrity decaying with every click.</p>
         </article>
       </div>

@@ -1319,6 +1319,21 @@
       ) {
         return; // Allow native dialog / control button trigger
       }
+      if (active === D.hudStatusLed) {
+        e.preventDefault();
+        handleLedClick();
+        return;
+      }
+      if (active === D.classifiedStamp) {
+        e.preventDefault();
+        D.classifiedStamp.click();
+        return;
+      }
+      if (active && active.classList && active.classList.contains('redacted')) {
+        e.preventDefault();
+        active.click();
+        return;
+      }
       const tag = active ? active.tagName.toLowerCase() : '';
       if (tag !== 'input' && tag !== 'textarea') {
         e.preventDefault();
