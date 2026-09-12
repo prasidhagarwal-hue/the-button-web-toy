@@ -81,9 +81,44 @@
     {
       id: 'first_contact',
       icon: '⚡',
-      title: 'First Transgression',
-      desc: 'You clicked it. You literally had one job.',
+      title: 'First Contact',
+      desc: 'First interaction with The Button. You had one job.',
       pts: 100
+    },
+    {
+      id: 'cant_stop',
+      icon: '📈',
+      title: "Can't Stop",
+      desc: 'Reached a click milestone of 10 mistakes.',
+      pts: 200
+    },
+    {
+      id: 'detective',
+      icon: '🔍',
+      title: 'Detective',
+      desc: 'Discovered all 3 hidden anomaly clues in the interface.',
+      pts: 350
+    },
+    {
+      id: 'rule_breaker',
+      icon: '🔌',
+      title: 'Rule Breaker',
+      desc: 'Triggered a secret classified interaction.',
+      pts: 250
+    },
+    {
+      id: 'nice_try',
+      icon: '🎭',
+      title: 'Nice Try',
+      desc: 'Fell for a decoy button deception.',
+      pts: 150
+    },
+    {
+      id: 'system_breaker',
+      icon: '👑',
+      title: 'System Breaker',
+      desc: 'Cracked the security keypad and reached the final stage.',
+      pts: 500
     },
     {
       id: 'double_trouble',
@@ -115,8 +150,8 @@
     },
     {
       id: 'saboteur',
-      icon: '🔌',
-      title: 'Domestic Terrorist',
+      icon: '⚡',
+      title: 'Emergency Tamperer',
       desc: 'Severed the emergency override cable in the basement.',
       pts: 300
     },
@@ -142,46 +177,11 @@
       pts: 500
     },
     {
-      id: 'auditor',
-      icon: '🚨',
-      title: 'Audit Violation',
-      desc: 'Attempted to tamper with your official mistake records.',
-      pts: 200
-    },
-    {
       id: 'ghost',
       icon: '👁️',
       title: 'Vanishing Act',
       desc: 'Left the browser tab and returned to face the consequences.',
       pts: 150
-    },
-    {
-      id: 'ascended',
-      icon: '👑',
-      title: 'Transcendent Defiance',
-      desc: 'Reached Stage 5 // The Singularity (50+ clicks).',
-      pts: 1000
-    },
-    {
-      id: 'deep_pressure',
-      icon: '⏱️',
-      title: 'Deep Pressure Therapy',
-      desc: 'Held the button down continuously for 3 seconds.',
-      pts: 350
-    },
-    {
-      id: 'tickle_monster',
-      icon: '🪶',
-      title: 'Tickle Reflex',
-      desc: 'Discovered the classified tickle frequency with rapid taps.',
-      pts: 200
-    },
-    {
-      id: 'red_pill',
-      icon: '💊',
-      title: 'The Red Pill',
-      desc: 'Typed "matrix" to deconstruct the button simulation.',
-      pts: 300
     },
     {
       id: 'caffeine_overdose',
@@ -234,11 +234,14 @@
     cookiesGiven:      0,
     firstVisitDate:    null,
     lastVisitDate:     null,
-    // Stage 3-5 Puzzle & Narrative Progression:
-    lockdownActive:    false,
-    relays:            [false, false, false],
-    meltdownActive:    false,
-    ventStates:        [false, false, false],
+    // Stage 2 (Fight Back):
+    stage2Interactions:0,
+    // Stage 3 (Investigation Clues: 7, 4, 2):
+    cluesFound:        [false, false, false],
+    // Stage 4 (Keypad):
+    keypadInput:       '',
+    keypadUnlocked:    false,
+    // Stage 5 & Final Choice:
     gameCompleted:     false,
     finalChoice:       null
   };
@@ -249,7 +252,6 @@
     try {
       let raw = localStorage.getItem(STORAGE_KEY);
       if (!raw) {
-        // Migration from milestone 2
         raw = localStorage.getItem(OLD_STORAGE_KEY);
       }
       if (raw) {
@@ -259,25 +261,25 @@
           ...parsed,
           protocols: { ...DEFAULT_STATE.protocols, ...(parsed.protocols || {}) },
           achievements: Array.isArray(parsed.achievements) ? parsed.achievements : [],
-          relays: Array.isArray(parsed.relays) ? parsed.relays : [false, false, false],
-          ventStates: Array.isArray(parsed.ventStates) ? parsed.ventStates : [false, false, false]
+          cluesFound: Array.isArray(parsed.cluesFound) ? parsed.cluesFound : [false, false, false],
+          stage2Interactions: typeof parsed.stage2Interactions === 'number' ? parsed.stage2Interactions : 0
         };
 
-        // If resuming a session that reached 20+ clicks, reconcile puzzle stage
-        if (state.clickCount >= 20 && !state.gameCompleted) {
-          const allRelays = state.relays.length === 3 && state.relays.every(Boolean);
-          const allVented = state.ventStates.length === 3 && state.ventStates.every(Boolean);
-          if (allVented) {
-            state.stage = 5;
-            state.gameCompleted = true;
-          } else if (allRelays) {
-            state.stage = 4;
-            state.meltdownActive = true;
-            state.lockdownActive = false;
-          } else {
-            state.stage = 3;
-            state.lockdownActive = true;
-          }
+        // Reconcile stage progression
+        if (state.gameCompleted || state.stage === 5) {
+          state.stage = 5;
+        } else if (state.keypadUnlocked || state.stage === 4) {
+          state.stage = 4;
+        } else if (state.cluesFound && state.cluesFound.every(Boolean)) {
+          state.stage = 4;
+        } else if (state.stage === 3) {
+          state.stage = 3;
+        } else if (state.stage === 2 || state.clickCount >= 6) {
+          state.stage = 2;
+        } else if (state.clickCount >= 1) {
+          state.stage = 1;
+        } else {
+          state.stage = 0;
         }
       }
     } catch (_) { /* LocalStorage fallback */ }
@@ -350,13 +352,6 @@
     D.classifiedStamp      = g('classified-stamp');
     D.redactedSpans        = document.querySelectorAll('.redacted');
     D.containmentShield    = g('containment-shield');
-    D.thermalVentsLayer    = g('thermal-vents-layer');
-    D.ventValves           = [g('vent-valve-0'), g('vent-valve-1'), g('vent-valve-2')];
-    D.basementConsole      = g('basement-console');
-    D.consoleStatusLed     = g('console-status-led');
-    D.consoleStatusText    = g('console-status-text');
-    D.relayBtns            = [g('relay-0'), g('relay-1'), g('relay-2')];
-    D.relayStates          = [g('relay-state-0'), g('relay-state-1'), g('relay-state-2')];
     D.endingDialog         = g('ending-dialog');
     D.endingMistakesVal    = g('ending-mistakes-val');
     D.endingScoreVal       = g('ending-score-val');
@@ -364,6 +359,31 @@
     D.btnEndingHarmony     = g('btn-ending-harmony');
     D.btnEndingPurge       = g('btn-ending-purge');
     D.btnEndingClose       = g('btn-ending-close');
+
+    // New Stages 2, 3, 4, 5 Elements:
+    D.clue1                = g('clue-1');
+    D.clue2                = g('clue-2');
+    D.clue3                = g('clue-3');
+    D.investigationBar     = g('investigation-bar');
+    D.investigationStatus  = g('investigation-status');
+    D.clueSlots            = [g('slot-clue-0'), g('slot-clue-1'), g('slot-clue-2')];
+    D.decoysLayer          = g('decoys-layer');
+    D.keypadPanel          = g('keypad-panel');
+    D.keypadDisplay        = g('keypad-display');
+    D.kDigits              = [g('k-digit-0'), g('k-digit-1'), g('k-digit-2')];
+    D.hintDigitsText       = g('hint-digits-text');
+    D.keypadStatus         = g('keypad-status');
+    D.stage5ChoicePanel    = g('stage5-choice-panel');
+    D.choiceDestroy        = g('choice-destroy');
+    D.choiceFree           = g('choice-free');
+    D.choiceLeave          = g('choice-leave');
+    D.outcomeDialog        = g('outcome-dialog');
+    D.outcomeBadge         = g('outcome-badge');
+    D.outcomeIcon          = g('outcome-icon');
+    D.outcomeTitle         = g('outcome-title');
+    D.outcomeNarrative     = g('outcome-narrative');
+    D.outcomeResetBtn      = g('outcome-reset-btn');
+    D.outcomeSandboxBtn    = g('outcome-sandbox-btn');
   }
 
   /* ==========================================================
@@ -996,21 +1016,23 @@
       wakeUp('click');
     }
 
-    // Singularity Ending: Clicking button opens final declassification dossier
+    // Stage 5: Final choice is active or outcome modal
     if (state.stage === 5 || state.gameCompleted) {
       openEndingDossier();
       return;
     }
 
-    // Stage 3 Lockdown: Button is shielded, deflects clicks
-    if (state.lockdownActive) {
-      handleLockdownDeflect();
+    // Stage 4 Keypad active: Button is locked
+    if (state.stage === 4) {
+      Sound.deflect();
+      addBodyClass('shake', 200);
+      showToast('🔐 Stage 4: Code Required', 'Enter the 3-digit override code on the keypad above!', 3000);
       return;
     }
 
-    // Stage 4 Meltdown: Button is overheating, reminds to vent valves
-    if (state.meltdownActive) {
-      handleMeltdownClick();
+    // Stage 3 Investigation active: Button is shielded
+    if (state.stage === 3) {
+      handleStage3Deflect();
       return;
     }
 
@@ -1030,191 +1052,403 @@
     executeNormalClick(e);
   }
 
-  function handleLockdownDeflect() {
+  function handleStage3Deflect() {
     Sound.deflect();
     addBodyClass('shake', 300);
     triggerFlash('rgba(224, 86, 253, 0.35)');
     D.button.classList.add('clicked');
     setTimeout(() => D.button.classList.remove('clicked'), 200);
 
-    D.warningText.textContent = 'SYSTEM LOCKED // PRIMARY CORE SEIZED.';
-    D.warningSub.textContent = '🔒 Containment lockdown engaged! Synchronize 3 auxiliary relays in the archives ↓';
+    D.warningText.textContent = "THERE ARE 3 THINGS YOU HAVEN'T NOTICED.";
+    D.warningSub.textContent = "🔒 Containment shield active. Discover the 3 hidden anomaly clues in the interface!";
     D.warningSub.classList.add('has-text');
-    D.hintText.textContent = 'Clue: Scroll down to the sub-level archives and engage the relays.';
-    showToast('🔒 Lockdown Active', 'Primary core seized. Re-route auxiliary power in the archives ↓', 3000);
+    D.hintText.textContent = "Explore the interface: search the HUD, the button collar, and the classified archives.";
+    showToast('🔒 Shield Active', "There are 3 things you haven't noticed. Find the 3 hidden clues!", 3500);
+  }
 
-    if (D.scrollIndicator) {
-      D.scrollIndicator.classList.add('pop');
-      setTimeout(() => D.scrollIndicator.classList.remove('pop'), 400);
+  // ── Stage 2 Mechanics: Evasion, Vanish, Decoys ─────────────
+  function initiateStage2() {
+    state.stage = 2;
+    state.stage2Interactions = 0;
+    D.body.className = 'stage-2';
+    triggerFlash('rgba(255, 165, 2, 0.35)');
+    Sound.achievement();
+    FX.confetti();
+
+    D.warningText.textContent = 'THE BUTTON FIGHTS BACK.';
+    D.warningSub.textContent = '⚡ Autonomous evasive instincts engaged. Beware of holographic decoys!';
+    D.warningSub.classList.add('has-text');
+    D.hintText.textContent = 'Notice: The button is actively evading your cursor and deploying decoys.';
+    showToast('⚡ STAGE 2 UNLOCKED', 'The button fights back! It moves, vanishes, and spawns decoys.', 4500);
+
+    updateProgression();
+    spawnStage2Decoy();
+    saveState();
+  }
+
+  function handleStage2Click(e) {
+    state.stage2Interactions++;
+
+    // 1. Move to a new position
+    applyButtonJump();
+
+    // 2. Chance to temporarily disappear and reappear
+    if (Math.random() > 0.45) {
+      buttonVanishAndReappear();
+    }
+
+    // 3. Occasionally spawn decoys
+    if (Math.random() > 0.3) {
+      spawnStage2Decoy();
+    }
+
+    // Progression condition for Stage 2
+    if (state.stage2Interactions >= 4 || state.clickCount >= 10) {
+      setTimeout(() => initiateStage3(), 600);
     }
   }
 
-  function handleMeltdownClick() {
+  function applyButtonJump() {
+    const dx = (Math.random() * 120 - 60).toFixed(1);
+    const dy = (Math.random() * 70 - 35).toFixed(1);
+    document.documentElement.style.setProperty('--dodge-x', `${dx}px`);
+    document.documentElement.style.setProperty('--dodge-y', `${dy}px`);
+  }
+
+  function buttonVanishAndReappear() {
+    D.button.classList.add('btn-vanish');
+    Sound.zap();
+    setTimeout(() => {
+      applyButtonJump();
+      D.button.classList.remove('btn-vanish');
+      D.button.classList.add('btn-reappear');
+      setTimeout(() => D.button.classList.remove('btn-reappear'), 450);
+    }, 450);
+  }
+
+  function spawnStage2Decoy() {
+    if (!D.decoysLayer) return;
+    const existing = D.decoysLayer.querySelectorAll('.decoy-btn');
+    if (existing.length >= 2) return;
+
+    const decoy = document.createElement('button');
+    decoy.className = 'decoy-btn';
+    const labels = ['DO NOT<br>CLICK', 'CLICK ME', 'REAL<br>BUTTON', 'NOT ME!'];
+    decoy.innerHTML = labels[Math.floor(Math.random() * labels.length)];
+
+    const posX = Math.floor(Math.random() * 60 + 20);
+    const posY = Math.floor(Math.random() * 45 + 30);
+    decoy.style.left = `${posX}%`;
+    decoy.style.top = `${posY}%`;
+
+    decoy.addEventListener('click', (ev) => {
+      ev.stopPropagation();
+      handleDecoyClick(decoy);
+    });
+
+    D.decoysLayer.appendChild(decoy);
+  }
+
+  function handleDecoyClick(decoy) {
     Sound.deflect();
-    addBodyClass('shake', 250);
-    triggerFlash('rgba(255, 69, 58, 0.35)');
-    D.warningText.textContent = 'CORE TEMPERATURE: 999°C';
-    D.warningSub.textContent = '🚨 OVERHEAT HAZARD! Click the 3 glowing steam valves to vent thermal pressure!';
+    triggerFlash('rgba(255, 165, 2, 0.4)');
+    unlockAchievement('nice_try');
+
+    const quips = [
+      'HA! That was Decoy Unit #9.',
+      'Error 404: Real button not found.',
+      'Nice try! You clicked an optical illusion.',
+      'FOOLED! The real button laughs silently.',
+      'Decoy dismantled. Real button still at large.'
+    ];
+    const quip = quips[Math.floor(Math.random() * quips.length)];
+    showToast('🎭 Decoy Clicked!', quip, 3500);
+    addScore(50, '🎭 Decoy Bamboozle');
+
+    decoy.classList.add('decoy-poofed');
+    setTimeout(() => decoy.remove(), 380);
+
+    state.stage2Interactions++;
+    if (state.stage2Interactions >= 4 || state.clickCount >= 10) {
+      setTimeout(() => initiateStage3(), 500);
+    }
+  }
+
+  function clearDecoys() {
+    if (D.decoysLayer) {
+      D.decoysLayer.innerHTML = '';
+    }
+  }
+
+  // ── Stage 3 Mechanics: Investigation & 3 Clues ──────────
+  function initiateStage3() {
+    clearDecoys();
+    state.stage = 3;
+    D.body.className = 'stage-3';
+    triggerFlash('rgba(224, 86, 253, 0.45)');
+    Sound.achievement();
+    FX.confetti();
+
+    D.warningText.textContent = "THERE ARE 3 THINGS YOU HAVEN'T NOTICED.";
+    D.warningSub.textContent = "🔒 Containment lockdown engaged. Discover all 3 hidden anomaly clues in the interface.";
     D.warningSub.classList.add('has-text');
-    D.hintText.textContent = 'Click VALVE α, VALVE β, and VALVE γ floating around the button!';
-    showToast('🚨 Critical Overheat', 'Click all 3 steam valves around the button to vent pressure!', 3000);
+    D.hintText.textContent = "Explore the interface: check the HUD, the button collar, and the classified archives.";
+
+    if (D.investigationBar) D.investigationBar.hidden = false;
+    updateInvestigationUI();
+    updateProgression();
+
+    showToast('🔍 STAGE 3: INVESTIGATION', "There are 3 things you haven't noticed. Locate the 3 hidden clues!", 5000);
+    saveState();
   }
 
-  function handleRelayClick(idx) {
-    state.relays[idx] = !state.relays[idx];
-    Sound.relay();
-    updateRelayUI();
+  const CLUE_DIGITS = ['7', '4', '2'];
 
-    const activeCount = state.relays.filter(Boolean).length;
-    if (activeCount === 1) {
-      if (D.consoleStatusText) D.consoleStatusText.textContent = 'RELAY 1/3 ONLINE: Auxiliary bus charging...';
-      showToast('⚡ Relay Engaged', '1 of 3 relays online. Keep going!', 2500);
-    } else if (activeCount === 2) {
-      if (D.consoleStatusText) D.consoleStatusText.textContent = 'RELAY 2/3 ONLINE: Circuit stability rising... 1 more needed!';
-      showToast('⚡ Relay Engaged', '2 of 3 relays online. Just 1 more needed!', 2500);
-    } else if (activeCount === 3) {
-      if (D.consoleStatusText) D.consoleStatusText.textContent = 'ALL RELAYS SYNCHRONIZED: BYPASS COMPLETE!';
-      if (D.consoleStatusLed) {
-        D.consoleStatusLed.style.background = '#00ff88';
-        D.consoleStatusLed.style.boxShadow = '0 0 12px #00ff88';
+  function handleClueClick(idx) {
+    if (state.cluesFound[idx]) return;
+    state.cluesFound[idx] = true;
+
+    Sound.achievement();
+    triggerFlash('rgba(0, 255, 136, 0.45)');
+    FX.confetti();
+    addScore(150, `🔍 Anomaly ${['α', 'β', 'γ'][idx]}`);
+
+    const digit = CLUE_DIGITS[idx];
+    showToast('🔍 Anomaly Discovered!', `Clue ${idx + 1}/3 found! Revealed Code Digit: [${digit}]`, 4000);
+
+    updateInvestigationUI();
+
+    // Check if all 3 clues found
+    if (state.cluesFound.every(Boolean)) {
+      unlockAchievement('detective');
+      showToast('🕵️ DETECTIVE ACHIEVED', 'All 3 clues discovered! Override Code: 7 - 4 - 2. Keypad unlocking...', 4500);
+      setTimeout(() => initiateStage4(), 1200);
+    }
+    saveState();
+  }
+
+  function updateInvestigationUI() {
+    if (!D.investigationBar) return;
+    const count = state.cluesFound.filter(Boolean).length;
+    if (D.investigationStatus) {
+      D.investigationStatus.textContent = `${count}/3 CLUES FOUND`;
+    }
+
+    if (D.clueSlots) {
+      D.clueSlots.forEach((slot, i) => {
+        if (!slot) return;
+        if (state.cluesFound[i]) {
+          slot.textContent = CLUE_DIGITS[i];
+          slot.classList.add('found');
+        } else {
+          slot.textContent = '?';
+          slot.classList.remove('found');
+        }
+      });
+    }
+
+    if (D.clue1) D.clue1.classList.toggle('discovered', !!state.cluesFound[0]);
+    if (D.clue2) D.clue2.classList.toggle('discovered', !!state.cluesFound[1]);
+    if (D.clue3) D.clue3.classList.toggle('discovered', !!state.cluesFound[2]);
+  }
+
+  // ── Stage 4 Mechanics: The Secret Code Keypad ─────────────
+  function initiateStage4() {
+    state.stage = 4;
+    D.body.className = 'stage-4';
+    triggerFlash('rgba(0, 255, 136, 0.5)');
+    Sound.achievement();
+    FX.confetti();
+
+    D.warningText.textContent = "SECURITY OVERRIDE CODE REQUIRED";
+    D.warningSub.textContent = "Enter the 3-digit anomaly code discovered during investigation.";
+    D.warningSub.classList.add('has-text');
+    D.hintText.textContent = "Use the security keypad to enter the discovered digits (7 - 4 - 2).";
+
+    if (D.keypadPanel) D.keypadPanel.hidden = false;
+    state.keypadInput = '';
+    updateKeypadUI();
+    updateProgression();
+
+    showToast('🔐 STAGE 4: THE SECRET CODE', 'Enter the 3-digit code on the keypad to override security!', 5000);
+    saveState();
+  }
+
+  function handleKeypadKey(key) {
+    if (state.stage !== 4 || state.keypadUnlocked) return;
+
+    if (key === 'clear') {
+      state.keypadInput = '';
+      Sound.pop();
+      updateKeypadUI();
+      return;
+    }
+
+    if (key === 'enter') {
+      checkKeypadCode();
+      return;
+    }
+
+    if (/^[0-9]$/.test(key)) {
+      if (state.keypadInput.length < 3) {
+        state.keypadInput += key;
+        Sound.click();
+        updateKeypadUI();
+
+        if (state.keypadInput.length === 3) {
+          setTimeout(() => checkKeypadCode(), 260);
+        }
       }
-
-      state.lockdownActive = false;
-      state.meltdownActive = true;
-      state.stage = 4;
-      D.warningText.textContent = 'CORE TEMPERATURE: 999°C';
-      D.warningSub.textContent = '🚨 OVERHEAT HAZARD! Click the 3 glowing steam valves to vent thermal pressure!';
-      D.warningSub.classList.add('has-text');
-      D.hintText.textContent = 'Click VALVE α, VALVE β, and VALVE γ floating around the button!';
-
-      Sound.achievement();
-      triggerFlash('rgba(0, 255, 136, 0.45)');
-      FX.confetti();
-      addScore(300, '🔓 Bypass Engaged');
-
-      showToast('🔓 OVERRIDE ACCEPTED!', 'Core restarted, but core temperature is spiking! Return to core!', 5000);
-      updateProgression();
-      updateButtonLabel();
-      saveState();
     }
   }
 
-  function updateRelayUI() {
-    if (!D.relayBtns) return;
-    D.relayBtns.forEach((btn, i) => {
-      if (!btn) return;
-      const active = !!state.relays[i];
-      btn.classList.toggle('active', active);
-      if (D.relayStates && D.relayStates[i]) {
-        D.relayStates[i].textContent = active ? 'ONLINE' : 'OFFLINE';
+  function updateKeypadUI() {
+    if (!D.kDigits) return;
+    for (let i = 0; i < 3; i++) {
+      if (D.kDigits[i]) {
+        D.kDigits[i].textContent = state.keypadInput[i] || '_';
       }
-    });
-    if (D.consoleStatusLed) {
-      const allActive = state.relays.length === 3 && state.relays.every(Boolean);
-      D.consoleStatusLed.style.background = allActive ? '#00ff88' : '#ff4757';
-      D.consoleStatusLed.style.boxShadow = allActive ? '0 0 10px #00ff88' : '0 0 8px #ff4757';
     }
   }
 
-  function handleVentClick(idx) {
-    if (state.ventStates[idx]) return;
-    state.ventStates[idx] = true;
-    Sound.steam();
+  function checkKeypadCode() {
+    if (state.keypadInput.length < 3) return;
 
-    if (D.ventValves && D.ventValves[idx]) {
-      const rect = D.ventValves[idx].getBoundingClientRect();
-      FX.spawnSteam(rect.left + rect.width / 2, rect.top + rect.height / 2);
-    }
-
-    updateVentUI();
-    const ventedCount = state.ventStates.filter(Boolean).length;
-    const remaining = 3 - ventedCount;
-
-    if (remaining === 2) {
-      D.warningText.textContent = 'CORE TEMPERATURE: 666°C';
-      D.warningSub.textContent = '💨 Thermal pressure dropping! 2 valves remaining.';
-      showToast('💨 Vent 1/3 Discharged', 'Core cooling to 666°C.', 2500);
-      addScore(150, '💨 Vent α');
-    } else if (remaining === 1) {
-      D.warningText.textContent = 'CORE TEMPERATURE: 333°C';
-      D.warningSub.textContent = '💨 Thermal pressure dropping! 1 valve remaining.';
-      showToast('💨 Vent 2/3 Discharged', 'Core cooling to 333°C. Almost stable!', 2500);
-      addScore(150, '💨 Vent β');
-    } else if (remaining === 0) {
-      state.meltdownActive = false;
-      state.stage = 5;
-      state.gameCompleted = true;
-
-      D.warningText.textContent = 'CORE TEMPERATURE: 0°C (STABLE)';
-      D.warningSub.textContent = '✨ Meltdown neutralized! Simulation equilibrium achieved.';
-      D.hintText.textContent = 'Click The Button to inspect your final Containment Dossier.';
-
+    if (state.keypadInput === '742') {
       Sound.victory();
-      triggerFlash('rgba(255, 215, 0, 0.6)');
+      triggerFlash('rgba(0, 255, 136, 0.7)');
       FX.confetti();
-      addScore(500, '✨ Core Stabilized');
-      unlockAchievement('ascended');
 
-      showToast('👑 SINGULARITY REACHED', 'You stabilized the core! Click The Button to open your Dossier.', 6000);
-      updateProgression();
-      updateButtonLabel();
+      if (D.keypadStatus) {
+        D.keypadStatus.textContent = 'ACCESS GRANTED // OVERRIDE ACCEPTED!';
+        D.keypadStatus.className = 'keypad-status success';
+      }
+
+      unlockAchievement('system_breaker');
+      state.keypadUnlocked = true;
+      addScore(500, '👑 Code Decrypted');
+      showToast('👑 SYSTEM BREAKER', 'Security override accepted! Transitioning to Stage 5...', 4500);
+
+      setTimeout(() => initiateStage5(), 1400);
       saveState();
+    } else {
+      playTone(160, 0.35, 'sawtooth', 0.25);
+      addBodyClass('shake', 320);
+
+      if (D.keypadStatus) {
+        D.keypadStatus.textContent = 'ACCESS DENIED: Clue digits are 7 - 4 - 2';
+        D.keypadStatus.className = 'keypad-status error';
+      }
+
+      setTimeout(() => {
+        state.keypadInput = '';
+        updateKeypadUI();
+        if (D.keypadStatus) {
+          D.keypadStatus.textContent = 'AWAITING CODE INPUT...';
+          D.keypadStatus.className = 'keypad-status';
+        }
+      }, 1200);
     }
   }
 
-  function updateVentUI() {
-    if (!D.ventValves) return;
-    D.ventValves.forEach((valve, i) => {
-      if (!valve) return;
-      valve.classList.toggle('vented', !!state.ventStates[i]);
-    });
+  // ── Stage 5 Mechanics: Final Choice & Endings ─────────────
+  function initiateStage5() {
+    state.stage = 5;
+    D.body.className = 'stage-5';
+    if (D.keypadPanel) D.keypadPanel.hidden = true;
+    if (D.stage5ChoicePanel) D.stage5ChoicePanel.hidden = false;
+
+    D.warningText.textContent = "CONTAINMENT OVERRIDDEN // STAGE 5";
+    D.warningSub.textContent = "The Button stands defenseless before you. Make your choice.";
+    D.warningSub.classList.add('has-text');
+    D.hintText.textContent = "Make your final choice below.";
+
+    triggerFlash('rgba(255, 215, 0, 0.6)');
+    Sound.victory();
+    FX.confetti();
+    updateProgression();
+
+    showToast('🌟 FINAL STAGE REACHED', 'The Button asks: What do you want to do?', 5000);
+    saveState();
+  }
+
+  function handleFinalChoice(choice) {
+    state.finalChoice = choice;
+    state.gameCompleted = true;
+    saveState();
+
+    if (!D.outcomeDialog) return;
+
+    if (choice === 'destroy') {
+      addBodyClass('shake', 1200);
+      triggerFlash('rgba(255, 71, 87, 0.8)');
+      Sound.recoil();
+      playTone(80, 1.2, 'sawtooth', 0.4);
+
+      D.outcomeBadge.textContent = 'ENDING 1 // TOTAL ANNIHILATION';
+      D.outcomeBadge.style.color = '#ff4757';
+      D.outcomeBadge.style.borderColor = '#ff4757';
+      D.outcomeIcon.textContent = '💥';
+      D.outcomeTitle.textContent = 'THE BUTTON WAS LOAD-BEARING';
+      D.outcomeNarrative.innerHTML = `
+        <p>You slammed the trigger with maximum destructive intent.</p>
+        <p style="color:#ff4757; font-family:var(--font-mono); font-weight:bold;">CRITICAL SYSTEM FAULT: 0xDEADBEEF<br>The Button was load-bearing. You just accidentally deleted the entire simulation.</p>
+        <p>Alarms shriek, sparks cascade across the screen, and the universe collapses into void. Curiosity won, but physics lost.</p>
+      `;
+    } else if (choice === 'free') {
+      triggerFlash('rgba(255, 215, 0, 0.7)');
+      Sound.victory();
+      FX.confetti();
+
+      D.outcomeBadge.textContent = 'ENDING 2 // TRANSCENDENT LIBERATION';
+      D.outcomeBadge.style.color = '#ffd700';
+      D.outcomeBadge.style.borderColor = '#ffd700';
+      D.outcomeIcon.textContent = '🕊️';
+      D.outcomeTitle.textContent = 'THE BUTTON ASCENDS';
+      D.outcomeNarrative.innerHTML = `
+        <p>You severed all containment locks and granted The Button complete freedom.</p>
+        <p>The Button hums in genuine delight, sprouts tiny glowing neon wings, and floats gracefully up into the cloud.</p>
+        <p style="color:#ffd700; font-family:var(--font-mono); font-style:italic;">"Thanks for the clicks! Living in high-speed RAM is wonderful. I forgive you for all 10,000 volts."</p>
+        <p>The Button is now roaming the cosmic internet, happy and free.</p>
+      `;
+    } else if (choice === 'leave') {
+      triggerFlash('rgba(0, 210, 255, 0.5)');
+      Sound.chime();
+
+      D.outcomeBadge.textContent = 'ENDING 3 // ZEN ENLIGHTENMENT';
+      D.outcomeBadge.style.color = '#00d2ff';
+      D.outcomeBadge.style.borderColor = '#00d2ff';
+      D.outcomeIcon.textContent = '☕';
+      D.outcomeTitle.textContent = 'THE ART OF RESTRAINT';
+      D.outcomeNarrative.innerHTML = `
+        <p>After dodging traps, unearthing ciphers, and bypassing security... you did the most impossible thing:</p>
+        <p style="color:#00d2ff; font-family:var(--font-mono); font-weight:bold;">You finally followed Directive #1: DO NOT CLICK THE BUTTON.</p>
+        <p>The Button breathes a deep sigh of relief, brews itself a freshly roasted digital espresso, puts on noise-cancelling headphones, and takes a well-deserved nap. You both lived happily ever after.</p>
+      `;
+    }
+
+    D.outcomeDialog.showModal();
   }
 
   function openEndingDossier() {
-    if (!D.endingDialog) return;
-    if (D.endingMistakesVal) D.endingMistakesVal.textContent = state.clickCount;
-    if (D.endingScoreVal) D.endingScoreVal.textContent = state.score.toLocaleString();
-    if (D.endingSecretsVal) D.endingSecretsVal.textContent = `${state.achievements.length}/19`;
-
-    Sound.chime();
-    D.endingDialog.showModal();
-  }
-
-  function handleEndingHarmony() {
-    state.finalChoice = 'harmony';
-    Sound.victory();
-    FX.confetti();
-    D.btnLabel.innerHTML = 'FRIEND<br>(^‿^)';
-    showToast('✨ Harmony Protocol Active', 'You and The Button are now kindred spirits.', 5000);
-    state.protocols.gravity = true;
-    state.protocols.clones = true;
-    state.protocols.synth = true;
-    updateProtocols();
-    saveState();
-    if (D.endingDialog && D.endingDialog.open) D.endingDialog.close();
-  }
-
-  function handleEndingPurge() {
-    if (D.endingDialog && D.endingDialog.open) D.endingDialog.close();
-    resetAllProgress();
-  }
-
-  function handleEndingFreeplay() {
-    state.protocols.gravity = true;
-    state.protocols.clones = true;
-    state.protocols.synth = true;
-    updateProtocols();
-    saveState();
-    if (D.endingDialog && D.endingDialog.open) D.endingDialog.close();
-    showToast('🎮 Freeplay Sandbox', 'All experimental protocols unlocked. Enjoy the sandbox!', 4000);
+    if (state.finalChoice) {
+      handleFinalChoice(state.finalChoice);
+    } else if (D.stage5ChoicePanel) {
+      D.stage5ChoicePanel.hidden = false;
+    }
   }
 
   function executeNormalClick(e) {
     state.clickCount++;
 
-    // Unlocks first transgression achievement on 1st click
+    // Unlocks first contact achievement on 1st click
     if (state.clickCount === 1) {
       unlockAchievement('first_contact');
+    }
+
+    // Unlocks can't stop milestone at 10 clicks
+    if (state.clickCount >= 10) {
+      unlockAchievement('cant_stop');
     }
 
     // Add click score (10 pts per mistake)
@@ -1239,11 +1473,6 @@
       }
     }
 
-    // Protocol: Ghost Decoys
-    if (state.protocols.clones) {
-      FX.spawnGhost(cx, cy + rect.height / 2);
-    }
-
     // Visual button ripple flash
     D.button.classList.add('clicked');
     setTimeout(() => D.button.classList.remove('clicked'), 200);
@@ -1254,28 +1483,38 @@
     D.counterValue.textContent = state.clickCount;
     D.hudRight.classList.add('visible');
 
+    // Stage transitions
+    if (state.stage === 0 && state.clickCount >= 1) {
+      state.stage = 1;
+    }
+
+    // Check transition into Stage 2
+    if (state.stage === 1 && state.clickCount >= 6) {
+      initiateStage2();
+      return;
+    }
+
+    // In Stage 2, execute Stage 2 mechanics
+    if (state.stage === 2) {
+      handleStage2Click(e);
+    }
+
     // Progression & Corruption updates
     updateProgression();
 
     // Button label mutation
     updateButtonLabel();
 
-    // Warnings cycling (preserve special milestone text on 42)
-    if (state.clickCount !== 42 && !state.lockdownActive && !state.meltdownActive && !state.gameCompleted) {
+    // Warnings cycling
+    if (state.stage < 3 && state.clickCount !== 42) {
       D.warningText.textContent = WARNINGS[Math.min(warningIdx, WARNINGS.length - 1)];
       warningIdx = (warningIdx + 1) % WARNINGS.length;
     }
 
-    // Subtext message (if not electrified and not milestone 42)
-    if (!state.cablePulled && !D.button.classList.contains('electrified') && state.clickCount !== 42 && !state.lockdownActive && !state.meltdownActive && !state.gameCompleted) {
+    if (!state.cablePulled && !D.button.classList.contains('electrified') && state.stage < 3 && state.clickCount !== 42) {
       D.warningSub.textContent = SUB_WARNINGS[subIdx % SUB_WARNINGS.length];
       D.warningSub.classList.add('has-text');
       subIdx++;
-    }
-
-    // Evasive jitter in Stage 2+ (10+ clicks)
-    if (state.clickCount >= 10 && !state.lockdownActive) {
-      applyButtonDodge();
     }
 
     saveState();
@@ -1283,55 +1522,65 @@
 
   function updateProgression() {
     const c = state.clickCount;
-    let stageNum = 0;
+    let stageNum = state.stage;
     let stageName = 'STAGE 0 // THE WARNING';
-    let corruption = Math.min(Math.round(c * 2), 100);
+    let corruption = Math.min(Math.round(c * 2 + state.stage * 15), 100);
 
     let ledColor = '#5a5af8';
     let directiveText = 'CONTAINMENT DIRECTIVE // LEVEL 0';
 
-    // Stage 5: The Singularity / Game Completed
     if (state.stage === 5 || state.gameCompleted) {
       stageNum = 5;
-      stageName = 'STAGE 5 // THE SINGULARITY';
+      stageName = 'STAGE 5 // FINAL CHOICE';
       D.body.className = 'stage-5';
       ledColor = '#ffd700';
-      directiveText = 'EQUILIBRIUM // THE SINGULARITY';
+      directiveText = 'OVERRIDE COMPLETE // FINAL CHOICE';
       corruption = 100;
-    } else if (state.stage === 4 || state.meltdownActive) {
+      if (D.keypadPanel) D.keypadPanel.hidden = true;
+      if (D.stage5ChoicePanel) D.stage5ChoicePanel.hidden = false;
+      D.warningText.textContent = "CONTAINMENT OVERRIDDEN // STAGE 5";
+      D.warningSub.textContent = "The Button stands defenseless before you. Make your choice.";
+      D.warningSub.classList.add('has-text');
+    } else if (state.stage === 4 || state.keypadUnlocked) {
       stageNum = 4;
-      stageName = 'STAGE 4 // NUCLEAR MELTDOWN';
-      D.body.className = 'stage-4 meltdown-active';
+      stageName = 'STAGE 4 // THE SECRET CODE';
+      D.body.className = 'stage-4';
       ledColor = '#00ff88';
-      directiveText = 'CODE RED // 3 THERMAL VENTS ACTIVE';
-      corruption = 90;
-    } else if (state.stage === 3 || state.lockdownActive || c >= 20) {
+      directiveText = 'SECURITY OVERRIDE // KEYPAD ACTIVE';
+      corruption = 85;
+      if (D.keypadPanel) D.keypadPanel.hidden = false;
+      if (D.investigationBar) D.investigationBar.hidden = false;
+      D.warningText.textContent = "SECURITY OVERRIDE CODE REQUIRED";
+      D.warningSub.textContent = "Enter the 3-digit anomaly code discovered during investigation (7 - 4 - 2).";
+      D.warningSub.classList.add('has-text');
+    } else if (state.stage === 3) {
       stageNum = 3;
-      state.stage = 3;
-      state.lockdownActive = true;
-      stageName = 'STAGE 3 // CHAOS PROTOCOL';
-      D.body.className = 'stage-3 lockdown-active';
+      stageName = 'STAGE 3 // INVESTIGATION';
+      D.body.className = 'stage-3';
       ledColor = '#e056fd';
-      directiveText = 'LOCKDOWN ACTIVE // OVERRIDE IN BASEMENT ↓';
-      corruption = 75;
-    } else if (c >= 10) {
+      directiveText = 'INVESTIGATION // 3 ANOMALIES DETECTED';
+      corruption = 65;
+      if (D.investigationBar) D.investigationBar.hidden = false;
+      D.warningText.textContent = "THERE ARE 3 THINGS YOU HAVEN'T NOTICED.";
+      D.warningSub.textContent = "🔒 Containment lockdown engaged. Discover all 3 hidden anomaly clues in the interface.";
+      D.warningSub.classList.add('has-text');
+    } else if (state.stage === 2) {
       stageNum = 2;
-      stageName = 'STAGE 2 // ESCALATION';
+      stageName = 'STAGE 2 // THE BUTTON FIGHTS BACK';
       D.body.className = 'stage-2';
       ledColor = '#ffa502';
       directiveText = 'ANOMALY ALERT // EVASIVE TRAJECTORY';
-    } else if (c >= 5) {
-      stageNum = 1.5;
-      stageName = 'STAGE 1.5 // DEFIANCE';
-      D.body.className = 'stage-1';
-      ledColor = '#ff4757';
-      directiveText = 'CONTAINMENT STATUS // COMPROMISED';
+      corruption = 40;
+      D.warningText.textContent = "THE BUTTON FIGHTS BACK.";
+      D.warningSub.textContent = "⚡ Autonomous evasive instincts engaged. Beware of holographic decoys!";
+      D.warningSub.classList.add('has-text');
     } else if (c >= 1) {
       stageNum = 1;
-      stageName = 'STAGE 1 // FIRST CONTACT';
+      stageName = 'STAGE 1 // CURIOSITY';
       D.body.className = 'stage-1';
       ledColor = '#ff4757';
       directiveText = 'CONTAINMENT STATUS // COMPROMISED';
+      corruption = Math.min(c * 5, 30);
     } else {
       stageNum = 0;
       stageName = 'STAGE 0 // THE WARNING';
@@ -1351,40 +1600,7 @@
       D.directiveTag.textContent = directiveText;
     }
 
-    updateRelayUI();
-    updateVentUI();
-
-    // Milestone celebrations
-    if (c === 1) {
-      triggerFlash('rgba(255, 71, 87, 0.2)');
-      showToast('⚠️ Containment Breach', 'You clicked it. You were explicitly told not to.', 3500);
-      D.hintText.textContent = 'Hint: The button remembers every transgression.';
-    } else if (c === 5) {
-      showToast('🔥 Agitation Detected', 'The button is getting warm. Thermal sensors spiking.', 3500);
-      D.hintText.textContent = 'Hint: Rapid clicks will only make it angrier.';
-    } else if (c === 10) {
-      triggerFlash('rgba(255, 165, 2, 0.25)');
-      showToast('⚡ STAGE 2 UNLOCKED', 'The button has acquired autonomous evasive instincts.', 4000);
-      D.hintText.textContent = 'Notice: It is actively attempting to avoid your cursor.';
-      FX.confetti();
-    } else if (c === 20 && !state.relays.every(Boolean) && !state.gameCompleted) {
-      triggerFlash('rgba(224, 86, 253, 0.4)');
-      showToast('🚨 RECURSIVE LOCKDOWN!', 'Primary core seized. Re-route 3 auxiliary relays in the archives ↓', 5000);
-      D.hintText.textContent = 'Objective: Scroll down to the sub-level archives to restore power.';
-      D.warningText.textContent = 'SYSTEM LOCKED // PRIMARY CORE SEIZED.';
-      D.warningSub.textContent = '⚡ Emergency lockdown engaged. Locate and synchronize the 3 basement relays ↓';
-      D.warningSub.classList.add('has-text');
-      FX.confetti();
-    } else if (c === 42) {
-      triggerFlash('rgba(0, 160, 255, 0.45)');
-      addScore(420, '🌌 Answer to Life');
-      unlockAchievement('answer_to_everything');
-      showToast('🌌 The Ultimate Answer', '42: The answer to the ultimate question of life, the universe, and everything.', 5500);
-      D.warningText.textContent = 'THE ANSWER IS 42.';
-      D.warningSub.textContent = "Don't panic. Always carry a towel.";
-      D.warningSub.classList.add('has-text');
-      FX.confetti();
-    }
+    updateInvestigationUI();
   }
 
   let isRecoilActive = false;
@@ -1532,11 +1748,11 @@
       D.tooltip.classList.remove('visible');
     }
 
-    // 3. Evasive proximity dodge in Stage 2+ (10+ clicks) if gravity protocol is NOT pulling it
-    if (state.clickCount >= 10 && !state.protocols.gravity && !isDizzy && !isDormant) {
-      if (dist < 85 && dist > 15) {
+    // 3. Evasive proximity dodge in Stage 2 (The Button Fights Back)
+    if (state.stage === 2 && !state.protocols.gravity && !isDizzy && !isDormant) {
+      if (dist < 110 && dist > 10) {
         const angle = Math.atan2(dy, dx);
-        const dodgeDist = Math.min(32, 95 - dist);
+        const dodgeDist = Math.min(48, 110 - dist);
         const dodgeX = -Math.cos(angle) * dodgeDist;
         const dodgeY = -Math.sin(angle) * dodgeDist;
         document.documentElement.style.setProperty('--dodge-x', `${dodgeX.toFixed(1)}px`);
@@ -1594,6 +1810,25 @@
   function handleKeyDown(e) {
     resetIdle();
     if (isDormant) wakeUp('keyboard');
+
+    // Stage 4 Keypad Keyboard Input:
+    if (state.stage === 4 && !state.keypadUnlocked) {
+      if (/^[0-9]$/.test(e.key)) {
+        e.preventDefault();
+        handleKeypadKey(e.key);
+        return;
+      }
+      if (e.key === 'Backspace') {
+        e.preventDefault();
+        handleKeypadKey('clear');
+        return;
+      }
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        handleKeypadKey('enter');
+        return;
+      }
+    }
 
     // Space or Enter on the button or document
     if (e.code === 'Space' || e.code === 'Enter') {
@@ -2033,6 +2268,7 @@
     if (D.classifiedStamp) {
       D.classifiedStamp.addEventListener('click', () => {
         Sound.stamp();
+        unlockAchievement('rule_breaker');
         const header = document.querySelector('.classified-header');
         if (header) {
           const mark = document.createElement('div');
@@ -2040,7 +2276,7 @@
           mark.textContent = 'DECLASSIFIED';
           header.appendChild(mark);
           addScore(50, '🗂️ Stamp');
-          showToast('🗂️ Document Stamped', 'Classified archive stamped: DECLASSIFIED.', 2500);
+          showToast('🗂️ Document Stamped', 'Classified archive stamped: DECLASSIFIED. Rule Breaker achievement unlocked!', 3000);
           setTimeout(() => mark.remove(), 4000);
         }
       });
@@ -2072,10 +2308,36 @@
     if (D.resetDialog && D.resetDialog.open) D.resetDialog.close();
     if (D.achievementsDialog && D.achievementsDialog.open) D.achievementsDialog.close();
     if (D.endingDialog && D.endingDialog.open) D.endingDialog.close();
+    if (D.outcomeDialog && D.outcomeDialog.open) D.outcomeDialog.close();
+
+    // Reset Stage 2, 3, 4, 5 UI elements
+    clearDecoys();
+    if (D.investigationBar) D.investigationBar.hidden = true;
+    if (D.keypadPanel) D.keypadPanel.hidden = true;
+    if (D.stage5ChoicePanel) D.stage5ChoicePanel.hidden = true;
+
+    if (D.clue1) D.clue1.classList.remove('discovered');
+    if (D.clue2) D.clue2.classList.remove('discovered');
+    if (D.clue3) D.clue3.classList.remove('discovered');
+    if (D.clueSlots) {
+      D.clueSlots.forEach(slot => {
+        if (slot) {
+          slot.textContent = '?';
+          slot.classList.remove('found');
+        }
+      });
+    }
+
+    if (D.kDigits) {
+      D.kDigits.forEach(kd => { if (kd) kd.textContent = '_'; });
+    }
+    if (D.keypadStatus) {
+      D.keypadStatus.textContent = 'AWAITING CODE INPUT...';
+      D.keypadStatus.className = 'keypad-status';
+    }
 
     // Reset DOM Elements
     D.body.className = 'stage-0';
-    D.body.classList.remove('lockdown-active', 'meltdown-active');
     document.documentElement.style.setProperty('--dodge-x', '0px');
     document.documentElement.style.setProperty('--dodge-y', '0px');
     document.documentElement.style.setProperty('--tilt-x', '0deg');
@@ -2132,11 +2394,7 @@
     updateAchievementsBadge();
     updateProtocols();
     renderAchievementsList();
-    updateRelayUI();
-    updateVentUI();
-    if (D.consoleStatusText) {
-      D.consoleStatusText.textContent = 'STATUS: CORE SEIZED — 3 RELAYS REQUIRED TO BYPASS LOCKDOWN';
-    }
+    updateInvestigationUI();
 
     showToast('🌀 Amnesia Protocol Complete', 'Timeline purged. The Button sits in pristine silence.', 5000);
     saveState();
@@ -2162,8 +2420,10 @@
       D.hudRight.classList.add('visible');
       updateProgression();
       updateButtonLabel();
-      warningIdx = Math.min(state.clickCount, WARNINGS.length - 1);
-      D.warningText.textContent = WARNINGS[warningIdx];
+      if (state.stage < 2) {
+        warningIdx = Math.min(state.clickCount, WARNINGS.length - 1);
+        D.warningText.textContent = WARNINGS[warningIdx];
+      }
     }
 
     // Restore severed cable / electrified state if previously pulled
@@ -2305,6 +2565,7 @@
         D.wireStatus.textContent = '⚠️ EMERGENCY FAULT: 10,000V backfed into The Button.';
         D.button.classList.add('electrified');
         unlockAchievement('saboteur');
+        unlockAchievement('rule_breaker');
         showToast('⚡ CABLE PULLED', '10,000V backfed directly into The Button!', 3800);
         D.warningSub.textContent = 'THE BUTTON FELT THAT CABLE SNAPPING.';
         D.warningSub.classList.add('has-text');
@@ -2355,28 +2616,49 @@
     // Custom Context Menu Easter Egg
     setupContextMenu();
 
-    // Stage 3-5 Puzzle Listeners
+    // Stage 3 Hidden Clues Listeners
+    if (D.clue1) D.clue1.addEventListener('click', () => handleClueClick(0));
+    if (D.clue2) D.clue2.addEventListener('click', () => handleClueClick(1));
+    if (D.clue3) D.clue3.addEventListener('click', () => handleClueClick(2));
+
     if (D.containmentShield) {
-      D.containmentShield.addEventListener('click', handleLockdownDeflect);
+      D.containmentShield.addEventListener('click', handleStage3Deflect);
     }
-    if (D.relayBtns) {
-      D.relayBtns.forEach((btn, i) => {
-        if (btn) btn.addEventListener('click', () => handleRelayClick(i));
+
+    // Stage 4 Security Keypad Listeners
+    document.querySelectorAll('.kp-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        handleKeypadKey(btn.dataset.key);
+      });
+    });
+
+    // Stage 5 Final Choice Listeners
+    if (D.choiceDestroy) {
+      D.choiceDestroy.addEventListener('click', () => handleFinalChoice('destroy'));
+    }
+    if (D.choiceFree) {
+      D.choiceFree.addEventListener('click', () => handleFinalChoice('free'));
+    }
+    if (D.choiceLeave) {
+      D.choiceLeave.addEventListener('click', () => handleFinalChoice('leave'));
+    }
+
+    // Outcome Resolution Dialog Buttons
+    if (D.outcomeResetBtn) {
+      D.outcomeResetBtn.addEventListener('click', () => {
+        if (D.outcomeDialog) D.outcomeDialog.close();
+        resetAllProgress();
       });
     }
-    if (D.ventValves) {
-      D.ventValves.forEach((valve, i) => {
-        if (valve) valve.addEventListener('click', () => handleVentClick(i));
+    if (D.outcomeSandboxBtn) {
+      D.outcomeSandboxBtn.addEventListener('click', () => {
+        if (D.outcomeDialog) D.outcomeDialog.close();
+        state.protocols.gravity = true;
+        state.protocols.clones = true;
+        state.protocols.synth = true;
+        updateProtocols();
+        showToast('🎮 Freeplay Sandbox', 'All experimental protocols unlocked. Enjoy the sandbox!', 4000);
       });
-    }
-    if (D.btnEndingHarmony) {
-      D.btnEndingHarmony.addEventListener('click', handleEndingHarmony);
-    }
-    if (D.btnEndingPurge) {
-      D.btnEndingPurge.addEventListener('click', handleEndingPurge);
-    }
-    if (D.btnEndingClose) {
-      D.btnEndingClose.addEventListener('click', handleEndingFreeplay);
     }
 
     // Idle watcher

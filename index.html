@@ -71,15 +71,37 @@
 
     <!-- Warning text block -->
     <section id="warning-block" aria-live="polite">
-      <div class="directive-tag" id="directive-tag">CONTAINMENT DIRECTIVE // LEVEL 0</div>
+      <div class="directive-tag-wrap">
+        <div class="directive-tag" id="directive-tag">CONTAINMENT DIRECTIVE // LEVEL 0</div>
+        <!-- Hidden Clue 1: Tiny suspicious UI glitch glyph -->
+        <span id="clue-1" class="hidden-clue clue-glyph" role="button" tabindex="0" title="Inspect suspicious anomaly" aria-label="Suspicious anomaly glyph">◈</span>
+      </div>
       <h1 id="warning-text">DO NOT CLICK THE BUTTON.</h1>
       <p id="warning-sub"></p>
+
+      <!-- Stage 3 Investigation Progress Bar -->
+      <div id="investigation-bar" class="investigation-bar" hidden aria-live="polite">
+        <div class="investigation-title">
+          <span class="pulse-icon">🔍</span>
+          <span class="inv-label">INVESTIGATION:</span>
+          <span id="investigation-status">0/3 CLUES FOUND</span>
+        </div>
+        <div class="clue-slots">
+          <span class="clue-slot" id="slot-clue-0" title="Clue 1: Anomaly α">?</span>
+          <span class="clue-slot" id="slot-clue-1" title="Clue 2: Anomaly β">?</span>
+          <span class="clue-slot" id="slot-clue-2" title="Clue 3: Anomaly γ">?</span>
+        </div>
+      </div>
     </section>
 
     <!-- THE BUTTON + Physical Milled Collar + Tooltip -->
     <div id="button-wrap">
       <div class="button-ring-outer" aria-hidden="true"></div>
       <div class="button-pulse-ring" aria-hidden="true"></div>
+
+      <!-- Hidden Clue 2: Engraved micro-latch on the button ring collar -->
+      <div id="clue-2" class="hidden-clue clue-collar" role="button" tabindex="0" title="Inspect mechanical seal" aria-label="Suspicious collar latch">⌬</div>
+
       <button
         id="the-button"
         aria-label="The Button — do not click"
@@ -93,27 +115,65 @@
       <div id="containment-shield" class="containment-shield" role="button" tabindex="0" aria-label="Containment shield — system locked, bypass required">
         <div class="shield-pulse"></div>
         <div class="shield-badge">🔒 SYSTEM LOCKED</div>
-        <div class="shield-sub">BYPASS REQUIRED ↓</div>
-      </div>
-
-      <!-- Stage 4 Thermal Pressure Vent Valves -->
-      <div id="thermal-vents-layer" class="thermal-vents-layer" aria-hidden="true">
-        <button class="vent-valve" id="vent-valve-0" data-vent="0" aria-label="Vent Pressure Valve Alpha" title="Click to vent thermal pressure">
-          <span class="vent-steam" aria-hidden="true">💨</span>
-          <span class="vent-tag">VALVE α</span>
-        </button>
-        <button class="vent-valve" id="vent-valve-1" data-vent="1" aria-label="Vent Pressure Valve Beta" title="Click to vent thermal pressure">
-          <span class="vent-steam" aria-hidden="true">💨</span>
-          <span class="vent-tag">VALVE β</span>
-        </button>
-        <button class="vent-valve" id="vent-valve-2" data-vent="2" aria-label="Vent Pressure Valve Gamma" title="Click to vent thermal pressure">
-          <span class="vent-steam" aria-hidden="true">💨</span>
-          <span class="vent-tag">VALVE γ</span>
-        </button>
+        <div class="shield-sub">INVESTIGATION REQUIRED</div>
       </div>
 
       <!-- Tooltip shown on hover/proximity -->
       <div id="tooltip" role="tooltip" aria-hidden="true"></div>
+    </div>
+
+    <!-- Stage 2 Dynamic Decoys Layer -->
+    <div id="decoys-layer" class="decoys-layer" aria-live="polite"></div>
+
+    <!-- Stage 4 Interactive Cyber Keypad -->
+    <div id="keypad-panel" class="keypad-panel" hidden aria-label="Security Keypad">
+      <div class="keypad-header">
+        <span class="keypad-tag">SECURITY OVERRIDE // STAGE 4</span>
+        <h2 class="keypad-prompt">ENTER 3-DIGIT OVERRIDE CODE</h2>
+      </div>
+      <div class="keypad-display" id="keypad-display">
+        <span class="keypad-digit" id="k-digit-0">_</span>
+        <span class="keypad-digit" id="k-digit-1">_</span>
+        <span class="keypad-digit" id="k-digit-2">_</span>
+      </div>
+      <div class="keypad-clues-hint" id="keypad-clues-hint">
+        Discovered Digits: <strong id="hint-digits-text">7 - 4 - 2</strong>
+      </div>
+      <div class="keypad-grid">
+        <button class="kp-btn" data-key="1">1</button>
+        <button class="kp-btn" data-key="2">2</button>
+        <button class="kp-btn" data-key="3">3</button>
+        <button class="kp-btn" data-key="4">4</button>
+        <button class="kp-btn" data-key="5">5</button>
+        <button class="kp-btn" data-key="6">6</button>
+        <button class="kp-btn" data-key="7">7</button>
+        <button class="kp-btn" data-key="8">8</button>
+        <button class="kp-btn" data-key="9">9</button>
+        <button class="kp-btn kp-action" data-key="clear">CLR</button>
+        <button class="kp-btn" data-key="0">0</button>
+        <button class="kp-btn kp-submit" data-key="enter">ENT</button>
+      </div>
+      <div class="keypad-status" id="keypad-status">AWAITING CODE INPUT...</div>
+    </div>
+
+    <!-- Stage 5 Final Choice Terminal -->
+    <div id="stage5-choice-panel" class="stage5-choice-panel" hidden aria-live="polite">
+      <div class="choice-badge">TERMINAL FINAL STAGE // DIRECTIVE COMPLETE</div>
+      <h2 class="choice-heading">You made it this far.<br>What do you want to do?</h2>
+      <div class="choice-buttons-grid">
+        <button id="choice-destroy" class="stage5-btn destroy-btn">
+          <span class="btn-icon">💥</span>
+          <span class="btn-text">DESTROY THE BUTTON</span>
+        </button>
+        <button id="choice-free" class="stage5-btn free-btn">
+          <span class="btn-icon">🕊️</span>
+          <span class="btn-text">FREE THE BUTTON</span>
+        </button>
+        <button id="choice-leave" class="stage5-btn leave-btn">
+          <span class="btn-icon">☕</span>
+          <span class="btn-text">LEAVE IT ALONE</span>
+        </button>
+      </div>
     </div>
 
     <!-- Hint / Keyboard / Reaction text -->
@@ -157,7 +217,11 @@
       <div class="classified-header">
         <span class="classified-stamp" id="classified-stamp" role="button" tabindex="0" title="Click or press Enter to stamp classified document" aria-label="Stamp document as declassified">TOP SECRET // LEVEL 5</span>
         <h2 class="classified-title">INCIDENT LOG #084-B: THE BUTTON PROTOCOL</h2>
-        <p class="classified-meta">TERMINAL ARCHIVE // REVISION 4.19 // ACCESS: RESTRICTED</p>
+        <p class="classified-meta">
+          TERMINAL ARCHIVE // REVISION 4.19 // ACCESS: RESTRICTED
+          <!-- Hidden Clue 3: Watermark anomalous symbol -->
+          <span id="clue-3" class="hidden-clue clue-watermark" role="button" tabindex="0" title="Inspect mysterious classified watermark" aria-label="Suspicious classified watermark">☵</span>
+        </p>
       </div>
 
       <div class="classified-grid">
@@ -329,6 +393,22 @@
         <button id="btn-ending-close" class="ending-choice-btn freeplay">
           🎮 FREEPLAY SANDBOX
         </button>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- ── Dialog: Ending Resolution Outcome ────────────────── -->
+  <dialog id="outcome-dialog" class="custom-dialog outcome-modal" aria-labelledby="outcome-title">
+    <div class="dialog-box outcome-box">
+      <div class="outcome-badge" id="outcome-badge">ENDING 1 // DESTRUCTION</div>
+      <div class="outcome-icon" id="outcome-icon">💥</div>
+      <h2 id="outcome-title" class="outcome-heading">THE BUTTON WAS LOAD-BEARING</h2>
+      <div class="outcome-narrative" id="outcome-narrative">
+        <p>Simulation outcome narrative...</p>
+      </div>
+      <div class="outcome-btn-group">
+        <button id="outcome-reset-btn" class="danger-btn confirm-btn">🔄 RECONSTRUCT TIMELINE (RESET)</button>
+        <button id="outcome-sandbox-btn" class="cancel-btn">🎮 FREEPLAY SANDBOX</button>
       </div>
     </div>
   </dialog>
