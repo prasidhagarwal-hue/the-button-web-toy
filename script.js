@@ -217,6 +217,14 @@
       playTone(240, 0.2, 'square', 0.25, 0.05);
       playTone(60, 0.4, 'sawtooth', 0.35, 0.12);
     },
+    buzz() {
+      playTone(110, 0.22, 'sawtooth', 0.2);
+      playTone(85, 0.28, 'sawtooth', 0.22, 0.08);
+    },
+    chime() {
+      playTone(659.25, 0.2, 'triangle', 0.2);
+      playTone(880, 0.3, 'sine', 0.2, 0.1);
+    },
     pop() {
       playTone(480, 0.05, 'sine', 0.12);
     }
@@ -294,17 +302,25 @@
   function executeNormalClick() {
     state.clickCount++;
 
-    // Audio blip
-    Sound.click();
+    // Check if button is electrified from severed basement cable
+    if (state.cablePulled || D.button.classList.contains('electrified')) {
+      Sound.zap();
+      triggerFlash('rgba(0, 255, 255, 0.4)');
+      addBodyClass('shake', 450);
+      D.warningSub.textContent = '⚡ HIGH VOLTAGE! 10,000 volts surged through your mouse pointer!';
+      D.warningSub.classList.add('has-text');
+    } else {
+      // Audio blip
+      Sound.click();
+      // Screen shake on escalation
+      if (state.clickCount >= 3) {
+        addBodyClass('shake');
+      }
+    }
 
     // Visual button ripple flash
     D.button.classList.add('clicked');
     setTimeout(() => D.button.classList.remove('clicked'), 200);
-
-    // Screen shake on escalation
-    if (state.clickCount >= 3) {
-      addBodyClass('shake');
-    }
 
     // Pop counter
     D.counterValue.classList.add('pop');
@@ -322,10 +338,12 @@
     D.warningText.textContent = WARNINGS[Math.min(warningIdx, WARNINGS.length - 1)];
     warningIdx = (warningIdx + 1) % WARNINGS.length;
 
-    // Subtext message
-    D.warningSub.textContent = SUB_WARNINGS[subIdx % SUB_WARNINGS.length];
-    D.warningSub.classList.add('has-text');
-    subIdx++;
+    // Subtext message (if not electrified)
+    if (!state.cablePulled && !D.button.classList.contains('electrified')) {
+      D.warningSub.textContent = SUB_WARNINGS[subIdx % SUB_WARNINGS.length];
+      D.warningSub.classList.add('has-text');
+      subIdx++;
+    }
 
     // Evasive jitter in Stage 2+ (10+ clicks)
     if (state.clickCount >= 10) {
@@ -343,14 +361,22 @@
     const c = state.clickCount;
     let stageNum = 0;
     let stageName = 'STAGE 0 // THE WARNING';
-    let corruption = Math.min(Math.round(c * 3.5), 100);
+    let corruption = Math.min(Math.round(c * 2), 100);
 
     // Progress bar fill & corruption %
     D.hudBarFill.style.width = corruption + '%';
     D.hudLabel.textContent = `CORRUPTION: ${corruption}%`;
 
     // Stage milestones
-    if (c >= 20) {
+    if (c >= 50) {
+      stageNum = 5;
+      stageName = 'STAGE 5 // THE SINGULARITY';
+      D.body.className = 'stage-5';
+    } else if (c >= 35) {
+      stageNum = 4;
+      stageName = 'STAGE 4 // MELTDOWN';
+      D.body.className = 'stage-4';
+    } else if (c >= 20) {
       stageNum = 3;
       stageName = 'STAGE 3 // CHAOS PROTOCOL';
       D.body.className = 'stage-3';
@@ -366,8 +392,11 @@
       stageNum = 1;
       stageName = 'STAGE 1 // FIRST CONTACT';
       D.body.className = 'stage-1';
+    } else {
+      D.body.className = 'stage-0';
     }
 
+    state.stage = stageNum;
     D.hudStage.textContent = stageName;
 
     // Milestone toasts
@@ -385,6 +414,15 @@
     } else if (c === 20) {
       triggerFlash('rgba(224, 86, 253, 0.3)');
       showToast('🚨 SYSTEM OVERLOAD', 'Containment is breaking down. Have mercy on the button.', 4500);
+      D.hintText.textContent = 'Critical: Reality anchor degrading.';
+    } else if (c === 35) {
+      triggerFlash('rgba(0, 255, 136, 0.35)');
+      showToast('☣️ NUCLEAR MELTDOWN', 'Thermal threshold exceeded. Core containment liquefying.', 4500);
+      D.hintText.textContent = 'Radiation levels dangerous. Please evacuate the web page.';
+    } else if (c === 50) {
+      triggerFlash('rgba(255, 215, 0, 0.5)');
+      showToast('✨ THE SINGULARITY', 'You broke the simulation. The Button is now self-aware.', 6000);
+      D.hintText.textContent = 'Transcended. All resistance was mathematically futile.';
     }
   }
 
@@ -392,7 +430,12 @@
    * INTERACTION 3: Double-Click Interaction
    * Violent recoil, alarm squeak, outrage text, and impatience penalty.
    */
+  let isRecoilActive = false;
   function handleDoubleClick() {
+    if (isRecoilActive) return;
+    isRecoilActive = true;
+    setTimeout(() => { isRecoilActive = false; }, 650);
+
     state.doubleClicks++;
     state.clickCount += 2; // Penalty mistakes
 
@@ -441,10 +484,19 @@
       'FINE.',
       'AGAIN?!',
       'WHY ME',
-      'QUIT IT'
+      'QUIT IT',
+      'TRANSCENDING',
+      'IT BURNS',
+      'UNSTOPPABLE',
+      'ERROR 418',
+      'WHY ME?!',
+      'I GIVE UP'
     ];
-    const index = Math.min(state.clickCount, labels.length - 1);
-    D.btnLabel.innerHTML = labels[index];
+    if (state.clickCount >= labels.length) {
+      D.btnLabel.innerHTML = `MISTAKE<br>#${state.clickCount}`;
+    } else {
+      D.btnLabel.innerHTML = labels[state.clickCount];
+    }
   }
 
   function applyButtonDodge() {
@@ -456,7 +508,7 @@
   }
 
   /* ==========================================================
-     7. MOTION — 3D Tilt, Proximity & Dizzy Shake
+     7. MOTION — 3D Tilt, Proximity, Dodge & Dizzy Shake
      ========================================================== */
 
   let mousePositions = [];
@@ -492,7 +544,8 @@
         'I see you creeping up...',
         "Don't get any closer.",
         'Personal space violation!',
-        'Step away from the cursor.'
+        'Step away from the cursor.',
+        'Back up. Slowly.'
       ];
       D.tooltip.textContent = tips[Math.floor(Math.random() * tips.length)];
       D.tooltip.classList.add('visible');
@@ -500,7 +553,19 @@
       D.tooltip.classList.remove('visible');
     }
 
-    // 3. Erratic mouse movement / shake detection (Dizzy interaction)
+    // 3. Evasive proximity dodge in Stage 2+ (10+ clicks)
+    if (state.clickCount >= 10 && !isDizzy && !isDormant) {
+      if (dist < 85 && dist > 15) {
+        const angle = Math.atan2(dy, dx);
+        const dodgeDist = Math.min(32, 95 - dist);
+        const dodgeX = -Math.cos(angle) * dodgeDist;
+        const dodgeY = -Math.sin(angle) * dodgeDist;
+        document.documentElement.style.setProperty('--dodge-x', `${dodgeX.toFixed(1)}px`);
+        document.documentElement.style.setProperty('--dodge-y', `${dodgeY.toFixed(1)}px`);
+      }
+    }
+
+    // 4. Erratic mouse movement / shake detection (Dizzy interaction)
     const now = performance.now();
     mousePositions.push({ x: e.clientX, y: e.clientY, t: now });
     // Keep last 450ms
@@ -553,11 +618,33 @@
 
     // Space or Enter on the button or document
     if (e.code === 'Space' || e.code === 'Enter') {
-      if (document.activeElement === D.button || e.target === document.body) {
+      const active = document.activeElement;
+      if (active === D.muteBtn || active === D.wireBtn) {
+        return; // allow native button trigger
+      }
+      const tag = active ? active.tagName.toLowerCase() : '';
+      if (tag !== 'input' && tag !== 'textarea') {
         e.preventDefault();
         handleClick();
         return;
       }
+    }
+
+    // Escape key
+    if (e.key === 'Escape') {
+      Sound.pop();
+      D.warningSub.textContent = 'There is no ESCAPE from your decisions.';
+      D.warningSub.classList.add('has-text');
+      showToast('🚪 No Exit', 'Pressing Escape will not reset reality.', 3000);
+      return;
+    }
+
+    // Backspace / Delete
+    if (e.key === 'Backspace' || e.key === 'Delete') {
+      Sound.pop();
+      D.warningSub.textContent = 'Backspace cannot delete what you have done.';
+      D.warningSub.classList.add('has-text');
+      return;
     }
 
     // Konami code detection
@@ -612,6 +699,24 @@
       D.warningSub.textContent = 'YOU CANNOT UN-CLICK THE PAST.';
       D.warningSub.classList.add('has-text');
       keyBuffer = [];
+    } else if (str.endsWith('cookie')) {
+      Sound.pop();
+      D.warningSub.textContent = '🍪 Virtual cookie consumed. The Button still refuses compliance.';
+      D.warningSub.classList.add('has-text');
+      showToast('🍪 Delicious', 'The button enjoyed that, but mistakes remain.', 3200);
+      keyBuffer = [];
+    } else if (str.endsWith('why')) {
+      Sound.pop();
+      D.warningSub.textContent = "Because curiosity was always humanity's fatal flaw.";
+      D.warningSub.classList.add('has-text');
+      keyBuffer = [];
+    } else if (str.endsWith('magic')) {
+      Sound.chime();
+      triggerFlash('rgba(255, 215, 0, 0.4)');
+      D.warningSub.textContent = '✨ Sparkles detected! Still strictly forbidden to click.';
+      D.warningSub.classList.add('has-text');
+      showToast('✨ Abracadabra', 'A momentary aura of magic enveloped The Button.', 3200);
+      keyBuffer = [];
     }
   }
 
@@ -643,34 +748,35 @@
      ========================================================== */
 
   let hasScrolledDown = false;
+  let inBasement = false;
 
   function handleScroll() {
     resetIdle();
     const scrollY = window.scrollY;
 
-    if (scrollY > 180 && !hasScrolledDown) {
-      hasScrolledDown = true;
-      showToast('📁 Archive Breached', 'You scrolled into the restricted incident logs.', 3600);
-      D.hintText.textContent = 'Observation: You are exploring the maintenance tunnels.';
-    }
-
-    // Interactive emergency cable
-    if (D.wireBtn && !D.wireBtn._attached) {
-      D.wireBtn._attached = true;
-      D.wireBtn.addEventListener('click', () => {
-        Sound.zap();
-        triggerFlash('rgba(255, 71, 87, 0.45)');
-        addBodyClass('shake', 500);
-        state.cablePulled = true;
-        D.wireBtn.textContent = 'CABLE SEVERED ⚡';
-        D.wireBtn.style.background = 'var(--danger)';
-        D.wireBtn.style.color = '#fff';
-        D.wireStatus.textContent = '⚠️ EMERGENCY FAULT: 10,000V backfed into The Button.';
-        showToast('⚡ CABLE PULLED', 'A severe electric jolt was sent to The Button!', 3800);
-        D.warningSub.textContent = 'THE BUTTON FELT THAT CABLE SNAPPING.';
+    if (scrollY > 300) {
+      if (!hasScrolledDown) {
+        hasScrolledDown = true;
+        showToast('📁 Archive Breached', 'You scrolled into the restricted incident logs.', 3600);
+        D.hintText.textContent = 'Observation: You are exploring the maintenance tunnels.';
+      }
+      if (!inBasement) {
+        inBasement = true;
+        if (!state.cablePulled) {
+          D.warningSub.textContent = 'Wait... where did you go? The Button is up there!';
+          D.warningSub.classList.add('has-text');
+        }
+      }
+    } else if (scrollY < 120 && inBasement) {
+      inBasement = false;
+      if (state.cablePulled) {
+        D.warningText.textContent = 'WHAT DID YOU DO DOWN THERE?!';
+        D.warningSub.textContent = 'You severed the emergency cable! The Button is buzzing with 10,000 volts!';
         D.warningSub.classList.add('has-text');
-        saveState();
-      });
+      } else {
+        D.warningSub.textContent = 'You came back. You cannot stay away from The Button.';
+        D.warningSub.classList.add('has-text');
+      }
     }
   }
 
@@ -689,15 +795,22 @@
         if (idleSeconds === 7) {
           D.warningSub.textContent = '...Why are you hesitating?';
           D.warningSub.classList.add('has-text');
-        } else if (idleSeconds === 18) {
+        } else if (idleSeconds === 15) {
           D.warningSub.textContent = "Don't stare at it. Just walk away.";
           D.warningSub.classList.add('has-text');
         }
       }
 
-      // Snooze condition: 13 seconds of zero user interaction
-      if (idleSeconds >= 13 && !isDormant) {
+      // Snooze condition: 12 seconds of zero user interaction
+      if (idleSeconds >= 12 && !isDormant) {
         fallAsleep();
+      }
+
+      // Deep meditation: 25 seconds of zen patience
+      if (idleSeconds === 25) {
+        D.warningSub.textContent = 'Deep REM cycle achieved. You actually have remarkable patience.';
+        D.warningSub.classList.add('has-text');
+        showToast('🧘 Zen Discipline', '25 seconds of doing absolutely nothing. Impressive restraint.', 4500);
       }
     }, 1000);
   }
@@ -807,6 +920,19 @@
       D.warningText.textContent = WARNINGS[warningIdx];
     }
 
+    // Restore severed cable / electrified state if previously pulled
+    if (state.cablePulled) {
+      D.button.classList.add('electrified');
+      if (D.wireBtn) {
+        D.wireBtn.textContent = 'CABLE SEVERED ⚡';
+        D.wireBtn.style.background = 'var(--danger)';
+        D.wireBtn.style.color = '#fff';
+      }
+      if (D.wireStatus) {
+        D.wireStatus.textContent = '⚠️ EMERGENCY FAULT: 10,000V backfed into The Button.';
+      }
+    }
+
     if (!state.firstVisitDate) {
       state.firstVisitDate = new Date().toISOString();
       saveState();
@@ -840,6 +966,51 @@
       isMuted = !isMuted;
       D.muteBtn.textContent = isMuted ? '🔇' : '🔊';
       D.muteBtn.setAttribute('aria-label', isMuted ? 'Unmute sound' : 'Mute sound');
+    });
+
+    // Emergency cable severance listener
+    if (D.wireBtn) {
+      D.wireBtn.addEventListener('click', () => {
+        if (state.cablePulled) return;
+        Sound.zap();
+        triggerFlash('rgba(0, 255, 255, 0.45)');
+        addBodyClass('shake', 500);
+        state.cablePulled = true;
+        D.wireBtn.textContent = 'CABLE SEVERED ⚡';
+        D.wireBtn.style.background = 'var(--danger)';
+        D.wireBtn.style.color = '#fff';
+        D.wireStatus.textContent = '⚠️ EMERGENCY FAULT: 10,000V backfed into The Button.';
+        D.button.classList.add('electrified');
+        showToast('⚡ CABLE PULLED', '10,000V backfed directly into The Button!', 3800);
+        D.warningSub.textContent = 'THE BUTTON FELT THAT CABLE SNAPPING.';
+        D.warningSub.classList.add('has-text');
+        saveState();
+      });
+    }
+
+    // HUD Counter Tamper Easter Egg
+    if (D.hudRight) {
+      D.hudRight.addEventListener('click', () => {
+        Sound.buzz();
+        D.counterValue.classList.add('tamper-shake');
+        setTimeout(() => D.counterValue.classList.remove('tamper-shake'), 450);
+        showToast('🚨 Audit Violation', 'Evidence tampering detected! You cannot edit your criminal record.', 3800);
+        D.warningSub.textContent = 'Do not touch the mistake counter. That is for internal affairs only.';
+        D.warningSub.classList.add('has-text');
+      });
+    }
+
+    // Page Visibility Easter Egg
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) {
+        document.title = '👀 Where did you go?';
+      } else {
+        document.title = 'THE BUTTON — Do Not Click';
+        Sound.pop();
+        showToast('👁️ Surveillance Alert', 'The button noticed you left the tab.', 3500);
+        D.warningSub.textContent = "YOU CAME BACK?! I thought I was finally free!";
+        D.warningSub.classList.add('has-text');
+      }
     });
 
     // Global interaction listeners

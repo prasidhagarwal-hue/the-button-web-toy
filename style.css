@@ -89,6 +89,34 @@ body.stage-3 {
   --accent-soft:rgba(224, 86, 253, 0.18);
 }
 
+/* Stage 4 Theme: Nuclear Acid Meltdown */
+body.stage-4 {
+  --bg:         #021307;
+  --bg-raised:  #05250f;
+  --bg-surface: #0a3818;
+  --accent:     #00ff88;
+  --accent-rgb: 0, 255, 136;
+  --accent-glow:rgba(0, 255, 136, 0.55);
+  --accent-soft:rgba(0, 255, 136, 0.20);
+}
+
+/* Stage 5 Theme: The Singularity / Transcended */
+body.stage-5 {
+  --bg:         #05040a;
+  --bg-raised:  #151128;
+  --bg-surface: #281d4a;
+  --accent:     #ffd700;
+  --accent-rgb: 255, 215, 0;
+  --accent-glow:rgba(255, 215, 0, 0.65);
+  --accent-soft:rgba(255, 215, 0, 0.25);
+}
+body.stage-5 #the-button {
+  box-shadow:
+    0 0 50px rgba(255, 215, 0, 0.6),
+    0 0 140px rgba(255, 215, 0, 0.3),
+    inset 0 0 40px rgba(255, 255, 255, 0.15);
+}
+
 /* Disco Easter Egg Mode */
 body.disco-mode {
   animation: discoBg 3.5s linear infinite alternate;
@@ -201,10 +229,17 @@ button {
   font-family: var(--font-mono);
   text-align: right;
   z-index: 100;
-  pointer-events: none;
+  pointer-events: auto;
+  cursor: pointer;
+  user-select: none;
   opacity: 0;
   transform: translateY(-6px);
   transition: opacity 0.5s var(--ease-out), transform 0.5s var(--ease-out);
+}
+
+#hud-right:hover #counter-value {
+  filter: brightness(1.25);
+  transform: scale(1.05);
 }
 
 #hud-right.visible {
@@ -217,6 +252,11 @@ button {
   font-size: clamp(0.52rem, 1.1vw, 0.65rem);
   color: var(--text-dim);
   letter-spacing: 0.08em;
+  transition: color 0.3s ease;
+}
+
+#hud-right:hover #counter-label {
+  color: var(--accent);
 }
 
 #counter-value {
@@ -225,11 +265,23 @@ button {
   font-weight: 700;
   color: var(--accent);
   line-height: 1.05;
-  transition: color 0.5s ease, transform 0.15s var(--ease-bounce);
+  transition: color 0.5s ease, transform 0.15s var(--ease-bounce), filter 0.2s ease;
 }
 
 #counter-value.pop {
   transform: scale(1.22);
+}
+
+#counter-value.tamper-shake {
+  animation: counterTamper 0.4s ease;
+}
+
+@keyframes counterTamper {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-6px) rotate(-4deg); }
+  40% { transform: translateX(6px) rotate(4deg); }
+  60% { transform: translateX(-4px) rotate(-2deg); }
+  80% { transform: translateX(3px) rotate(1deg); }
 }
 
 /* ── 6. Mute button ──────────────────────────────────────── */
@@ -401,6 +453,21 @@ button {
   animation: snoozeBreath 3s ease-in-out infinite !important;
   border-color: rgba(220, 220, 248, 0.3) !important;
   opacity: 0.85;
+}
+
+/* Electrified state (severed cable in basement) */
+#the-button.electrified {
+  border-color: #00ffff !important;
+  box-shadow:
+    0 0 35px #00ffff,
+    0 0 90px rgba(0, 255, 255, 0.4),
+    inset 0 0 25px rgba(0, 255, 255, 0.25) !important;
+  animation: electricJitter 0.16s infinite alternate !important;
+}
+
+@keyframes electricJitter {
+  0% { transform: translate3d(calc(var(--dodge-x) - 2px), calc(var(--dodge-y) + 1.5px), 0) rotate(1deg); }
+  100% { transform: translate3d(calc(var(--dodge-x) + 2px), calc(var(--dodge-y) - 1.5px), 0) rotate(-1deg); }
 }
 
 /* ── 9. Tooltip & Hints ──────────────────────────────────── */
