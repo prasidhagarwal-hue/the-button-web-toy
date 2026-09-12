@@ -233,7 +233,14 @@
     apologiesGiven:    0,
     cookiesGiven:      0,
     firstVisitDate:    null,
-    lastVisitDate:     null
+    lastVisitDate:     null,
+    // Stage 3-5 Puzzle & Narrative Progression:
+    lockdownActive:    false,
+    relays:            [false, false, false],
+    meltdownActive:    false,
+    ventStates:        [false, false, false],
+    gameCompleted:     false,
+    finalChoice:       null
   };
 
   let state = { ...DEFAULT_STATE };
@@ -251,13 +258,33 @@
           ...DEFAULT_STATE,
           ...parsed,
           protocols: { ...DEFAULT_STATE.protocols, ...(parsed.protocols || {}) },
-          achievements: Array.isArray(parsed.achievements) ? parsed.achievements : []
+          achievements: Array.isArray(parsed.achievements) ? parsed.achievements : [],
+          relays: Array.isArray(parsed.relays) ? parsed.relays : [false, false, false],
+          ventStates: Array.isArray(parsed.ventStates) ? parsed.ventStates : [false, false, false]
         };
+
+        // If resuming a session that reached 20+ clicks, reconcile puzzle stage
+        if (state.clickCount >= 20 && !state.gameCompleted) {
+          const allRelays = state.relays.length === 3 && state.relays.every(Boolean);
+          const allVented = state.ventStates.length === 3 && state.ventStates.every(Boolean);
+          if (allVented) {
+            state.stage = 5;
+            state.gameCompleted = true;
+          } else if (allRelays) {
+            state.stage = 4;
+            state.meltdownActive = true;
+            state.lockdownActive = false;
+          } else {
+            state.stage = 3;
+            state.lockdownActive = true;
+          }
+        }
       }
     } catch (_) { /* LocalStorage fallback */ }
   }
 
   function saveState() {
+    if (window._suppressSaveState) return;
     try {
       state.lastVisitDate = new Date().toISOString();
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
@@ -322,6 +349,21 @@
     D.toastContainer       = g('toast-container');
     D.classifiedStamp      = g('classified-stamp');
     D.redactedSpans        = document.querySelectorAll('.redacted');
+    D.containmentShield    = g('containment-shield');
+    D.thermalVentsLayer    = g('thermal-vents-layer');
+    D.ventValves           = [g('vent-valve-0'), g('vent-valve-1'), g('vent-valve-2')];
+    D.basementConsole      = g('basement-console');
+    D.consoleStatusLed     = g('console-status-led');
+    D.consoleStatusText    = g('console-status-text');
+    D.relayBtns            = [g('relay-0'), g('relay-1'), g('relay-2')];
+    D.relayStates          = [g('relay-state-0'), g('relay-state-1'), g('relay-state-2')];
+    D.endingDialog         = g('ending-dialog');
+    D.endingMistakesVal    = g('ending-mistakes-val');
+    D.endingScoreVal       = g('ending-score-val');
+    D.endingSecretsVal     = g('ending-secrets-val');
+    D.btnEndingHarmony     = g('btn-ending-harmony');
+    D.btnEndingPurge       = g('btn-ending-purge');
+    D.btnEndingClose       = g('btn-ending-close');
   }
 
   /* ==========================================================
@@ -465,6 +507,23 @@
     stamp() {
       playTone(85, 0.18, 'triangle', 0.35);
       playTone(180, 0.08, 'square', 0.2, 0.02);
+    },
+    deflect() {
+      playTone(150, 0.12, 'sawtooth', 0.22);
+      playTone(95, 0.18, 'square', 0.24, 0.04);
+    },
+    relay() {
+      playTone(180, 0.08, 'square', 0.28);
+      playTone(520, 0.16, 'triangle', 0.22, 0.04);
+      playTone(660, 0.2, 'sine', 0.18, 0.08);
+    },
+    steam() {
+      playTone(280, 0.25, 'triangle', 0.2);
+      playTone(420, 0.35, 'sawtooth', 0.15, 0.05);
+    },
+    victory() {
+      const chords = [523.25, 659.25, 783.99, 1046.50, 1318.51];
+      chords.forEach((n, i) => playTone(n, 0.45, 'sine', 0.16, i * 0.09));
     }
   };
 
@@ -590,6 +649,28 @@
       g.style.setProperty('--gy', `${gy.toFixed(0)}px`);
       document.body.appendChild(g);
       setTimeout(() => g.remove(), 1200);
+    },
+
+    spawnSteam(x, y) {
+      if (!canvasCtx) return;
+      const colors = ['#00ff88', '#55efc4', '#ffffff', '#a8ff78'];
+      for (let i = 0; i < 16; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const speed = Math.random() * 4 + 1;
+        particles.push({
+          x: x || window.innerWidth / 2,
+          y: y || window.innerHeight / 2,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed - 1.5,
+          size: Math.random() * 5 + 3,
+          color: colors[Math.floor(Math.random() * colors.length)],
+          rotation: 0,
+          vRot: 0,
+          alpha: 0.9,
+          decay: Math.random() * 0.02 + 0.02
+        });
+      }
+      startAnimLoop();
     }
   };
 
@@ -915,6 +996,24 @@
       wakeUp('click');
     }
 
+    // Singularity Ending: Clicking button opens final declassification dossier
+    if (state.stage === 5 || state.gameCompleted) {
+      openEndingDossier();
+      return;
+    }
+
+    // Stage 3 Lockdown: Button is shielded, deflects clicks
+    if (state.lockdownActive) {
+      handleLockdownDeflect();
+      return;
+    }
+
+    // Stage 4 Meltdown: Button is overheating, reminds to vent valves
+    if (state.meltdownActive) {
+      handleMeltdownClick();
+      return;
+    }
+
     // Tickle reflex detection (5 clicks within 1200ms)
     recentClicks.push(now);
     if (recentClicks.length > 5) recentClicks.shift();
@@ -929,6 +1028,185 @@
     }
 
     executeNormalClick(e);
+  }
+
+  function handleLockdownDeflect() {
+    Sound.deflect();
+    addBodyClass('shake', 300);
+    triggerFlash('rgba(224, 86, 253, 0.35)');
+    D.button.classList.add('clicked');
+    setTimeout(() => D.button.classList.remove('clicked'), 200);
+
+    D.warningText.textContent = 'SYSTEM LOCKED // PRIMARY CORE SEIZED.';
+    D.warningSub.textContent = '🔒 Containment lockdown engaged! Synchronize 3 auxiliary relays in the archives ↓';
+    D.warningSub.classList.add('has-text');
+    D.hintText.textContent = 'Clue: Scroll down to the sub-level archives and engage the relays.';
+    showToast('🔒 Lockdown Active', 'Primary core seized. Re-route auxiliary power in the archives ↓', 3000);
+
+    if (D.scrollIndicator) {
+      D.scrollIndicator.classList.add('pop');
+      setTimeout(() => D.scrollIndicator.classList.remove('pop'), 400);
+    }
+  }
+
+  function handleMeltdownClick() {
+    Sound.deflect();
+    addBodyClass('shake', 250);
+    triggerFlash('rgba(255, 69, 58, 0.35)');
+    D.warningText.textContent = 'CORE TEMPERATURE: 999°C';
+    D.warningSub.textContent = '🚨 OVERHEAT HAZARD! Click the 3 glowing steam valves to vent thermal pressure!';
+    D.warningSub.classList.add('has-text');
+    D.hintText.textContent = 'Click VALVE α, VALVE β, and VALVE γ floating around the button!';
+    showToast('🚨 Critical Overheat', 'Click all 3 steam valves around the button to vent pressure!', 3000);
+  }
+
+  function handleRelayClick(idx) {
+    state.relays[idx] = !state.relays[idx];
+    Sound.relay();
+    updateRelayUI();
+
+    const activeCount = state.relays.filter(Boolean).length;
+    if (activeCount === 1) {
+      if (D.consoleStatusText) D.consoleStatusText.textContent = 'RELAY 1/3 ONLINE: Auxiliary bus charging...';
+      showToast('⚡ Relay Engaged', '1 of 3 relays online. Keep going!', 2500);
+    } else if (activeCount === 2) {
+      if (D.consoleStatusText) D.consoleStatusText.textContent = 'RELAY 2/3 ONLINE: Circuit stability rising... 1 more needed!';
+      showToast('⚡ Relay Engaged', '2 of 3 relays online. Just 1 more needed!', 2500);
+    } else if (activeCount === 3) {
+      if (D.consoleStatusText) D.consoleStatusText.textContent = 'ALL RELAYS SYNCHRONIZED: BYPASS COMPLETE!';
+      if (D.consoleStatusLed) {
+        D.consoleStatusLed.style.background = '#00ff88';
+        D.consoleStatusLed.style.boxShadow = '0 0 12px #00ff88';
+      }
+
+      state.lockdownActive = false;
+      state.meltdownActive = true;
+      state.stage = 4;
+      D.warningText.textContent = 'CORE TEMPERATURE: 999°C';
+      D.warningSub.textContent = '🚨 OVERHEAT HAZARD! Click the 3 glowing steam valves to vent thermal pressure!';
+      D.warningSub.classList.add('has-text');
+      D.hintText.textContent = 'Click VALVE α, VALVE β, and VALVE γ floating around the button!';
+
+      Sound.achievement();
+      triggerFlash('rgba(0, 255, 136, 0.45)');
+      FX.confetti();
+      addScore(300, '🔓 Bypass Engaged');
+
+      showToast('🔓 OVERRIDE ACCEPTED!', 'Core restarted, but core temperature is spiking! Return to core!', 5000);
+      updateProgression();
+      updateButtonLabel();
+      saveState();
+    }
+  }
+
+  function updateRelayUI() {
+    if (!D.relayBtns) return;
+    D.relayBtns.forEach((btn, i) => {
+      if (!btn) return;
+      const active = !!state.relays[i];
+      btn.classList.toggle('active', active);
+      if (D.relayStates && D.relayStates[i]) {
+        D.relayStates[i].textContent = active ? 'ONLINE' : 'OFFLINE';
+      }
+    });
+    if (D.consoleStatusLed) {
+      const allActive = state.relays.length === 3 && state.relays.every(Boolean);
+      D.consoleStatusLed.style.background = allActive ? '#00ff88' : '#ff4757';
+      D.consoleStatusLed.style.boxShadow = allActive ? '0 0 10px #00ff88' : '0 0 8px #ff4757';
+    }
+  }
+
+  function handleVentClick(idx) {
+    if (state.ventStates[idx]) return;
+    state.ventStates[idx] = true;
+    Sound.steam();
+
+    if (D.ventValves && D.ventValves[idx]) {
+      const rect = D.ventValves[idx].getBoundingClientRect();
+      FX.spawnSteam(rect.left + rect.width / 2, rect.top + rect.height / 2);
+    }
+
+    updateVentUI();
+    const ventedCount = state.ventStates.filter(Boolean).length;
+    const remaining = 3 - ventedCount;
+
+    if (remaining === 2) {
+      D.warningText.textContent = 'CORE TEMPERATURE: 666°C';
+      D.warningSub.textContent = '💨 Thermal pressure dropping! 2 valves remaining.';
+      showToast('💨 Vent 1/3 Discharged', 'Core cooling to 666°C.', 2500);
+      addScore(150, '💨 Vent α');
+    } else if (remaining === 1) {
+      D.warningText.textContent = 'CORE TEMPERATURE: 333°C';
+      D.warningSub.textContent = '💨 Thermal pressure dropping! 1 valve remaining.';
+      showToast('💨 Vent 2/3 Discharged', 'Core cooling to 333°C. Almost stable!', 2500);
+      addScore(150, '💨 Vent β');
+    } else if (remaining === 0) {
+      state.meltdownActive = false;
+      state.stage = 5;
+      state.gameCompleted = true;
+
+      D.warningText.textContent = 'CORE TEMPERATURE: 0°C (STABLE)';
+      D.warningSub.textContent = '✨ Meltdown neutralized! Simulation equilibrium achieved.';
+      D.hintText.textContent = 'Click The Button to inspect your final Containment Dossier.';
+
+      Sound.victory();
+      triggerFlash('rgba(255, 215, 0, 0.6)');
+      FX.confetti();
+      addScore(500, '✨ Core Stabilized');
+      unlockAchievement('ascended');
+
+      showToast('👑 SINGULARITY REACHED', 'You stabilized the core! Click The Button to open your Dossier.', 6000);
+      updateProgression();
+      updateButtonLabel();
+      saveState();
+    }
+  }
+
+  function updateVentUI() {
+    if (!D.ventValves) return;
+    D.ventValves.forEach((valve, i) => {
+      if (!valve) return;
+      valve.classList.toggle('vented', !!state.ventStates[i]);
+    });
+  }
+
+  function openEndingDossier() {
+    if (!D.endingDialog) return;
+    if (D.endingMistakesVal) D.endingMistakesVal.textContent = state.clickCount;
+    if (D.endingScoreVal) D.endingScoreVal.textContent = state.score.toLocaleString();
+    if (D.endingSecretsVal) D.endingSecretsVal.textContent = `${state.achievements.length}/19`;
+
+    Sound.chime();
+    D.endingDialog.showModal();
+  }
+
+  function handleEndingHarmony() {
+    state.finalChoice = 'harmony';
+    Sound.victory();
+    FX.confetti();
+    D.btnLabel.innerHTML = 'FRIEND<br>(^‿^)';
+    showToast('✨ Harmony Protocol Active', 'You and The Button are now kindred spirits.', 5000);
+    state.protocols.gravity = true;
+    state.protocols.clones = true;
+    state.protocols.synth = true;
+    updateProtocols();
+    saveState();
+    if (D.endingDialog && D.endingDialog.open) D.endingDialog.close();
+  }
+
+  function handleEndingPurge() {
+    if (D.endingDialog && D.endingDialog.open) D.endingDialog.close();
+    resetAllProgress();
+  }
+
+  function handleEndingFreeplay() {
+    state.protocols.gravity = true;
+    state.protocols.clones = true;
+    state.protocols.synth = true;
+    updateProtocols();
+    saveState();
+    if (D.endingDialog && D.endingDialog.open) D.endingDialog.close();
+    showToast('🎮 Freeplay Sandbox', 'All experimental protocols unlocked. Enjoy the sandbox!', 4000);
   }
 
   function executeNormalClick(e) {
@@ -983,20 +1261,20 @@
     updateButtonLabel();
 
     // Warnings cycling (preserve special milestone text on 42)
-    if (state.clickCount !== 42) {
+    if (state.clickCount !== 42 && !state.lockdownActive && !state.meltdownActive && !state.gameCompleted) {
       D.warningText.textContent = WARNINGS[Math.min(warningIdx, WARNINGS.length - 1)];
       warningIdx = (warningIdx + 1) % WARNINGS.length;
     }
 
     // Subtext message (if not electrified and not milestone 42)
-    if (!state.cablePulled && !D.button.classList.contains('electrified') && state.clickCount !== 42) {
+    if (!state.cablePulled && !D.button.classList.contains('electrified') && state.clickCount !== 42 && !state.lockdownActive && !state.meltdownActive && !state.gameCompleted) {
       D.warningSub.textContent = SUB_WARNINGS[subIdx % SUB_WARNINGS.length];
       D.warningSub.classList.add('has-text');
       subIdx++;
     }
 
     // Evasive jitter in Stage 2+ (10+ clicks)
-    if (state.clickCount >= 10) {
+    if (state.clickCount >= 10 && !state.lockdownActive) {
       applyButtonDodge();
     }
 
@@ -1009,31 +1287,33 @@
     let stageName = 'STAGE 0 // THE WARNING';
     let corruption = Math.min(Math.round(c * 2), 100);
 
-    D.hudBarFill.style.width = corruption + '%';
-    D.hudLabel.textContent = `CORRUPTION: ${corruption}%`;
-
     let ledColor = '#5a5af8';
     let directiveText = 'CONTAINMENT DIRECTIVE // LEVEL 0';
 
-    // Stage milestones
-    if (c >= 50) {
+    // Stage 5: The Singularity / Game Completed
+    if (state.stage === 5 || state.gameCompleted) {
       stageNum = 5;
       stageName = 'STAGE 5 // THE SINGULARITY';
       D.body.className = 'stage-5';
       ledColor = '#ffd700';
-      directiveText = 'REALITY COLLAPSE // THE SINGULARITY';
-    } else if (c >= 35) {
+      directiveText = 'EQUILIBRIUM // THE SINGULARITY';
+      corruption = 100;
+    } else if (state.stage === 4 || state.meltdownActive) {
       stageNum = 4;
-      stageName = 'STAGE 4 // MELTDOWN';
-      D.body.className = 'stage-4';
+      stageName = 'STAGE 4 // NUCLEAR MELTDOWN';
+      D.body.className = 'stage-4 meltdown-active';
       ledColor = '#00ff88';
-      directiveText = 'CODE RED // NUCLEAR MELTDOWN';
-    } else if (c >= 20) {
+      directiveText = 'CODE RED // 3 THERMAL VENTS ACTIVE';
+      corruption = 90;
+    } else if (state.stage === 3 || state.lockdownActive || c >= 20) {
       stageNum = 3;
+      state.stage = 3;
+      state.lockdownActive = true;
       stageName = 'STAGE 3 // CHAOS PROTOCOL';
-      D.body.className = 'stage-3';
+      D.body.className = 'stage-3 lockdown-active';
       ledColor = '#e056fd';
-      directiveText = 'CRITICAL ANOMALY // CHAOS PROTOCOL';
+      directiveText = 'LOCKDOWN ACTIVE // OVERRIDE IN BASEMENT ↓';
+      corruption = 75;
     } else if (c >= 10) {
       stageNum = 2;
       stageName = 'STAGE 2 // ESCALATION';
@@ -1053,11 +1333,15 @@
       ledColor = '#ff4757';
       directiveText = 'CONTAINMENT STATUS // COMPROMISED';
     } else {
+      stageNum = 0;
+      stageName = 'STAGE 0 // THE WARNING';
       D.body.className = 'stage-0';
     }
 
     state.stage = stageNum;
     D.hudStage.textContent = stageName;
+    D.hudBarFill.style.width = corruption + '%';
+    D.hudLabel.textContent = `CORRUPTION: ${corruption}%`;
 
     if (D.hudStatusLed) {
       D.hudStatusLed.style.backgroundColor = ledColor;
@@ -1066,6 +1350,9 @@
     if (D.directiveTag) {
       D.directiveTag.textContent = directiveText;
     }
+
+    updateRelayUI();
+    updateVentUI();
 
     // Milestone celebrations
     if (c === 1) {
@@ -1080,15 +1367,13 @@
       showToast('⚡ STAGE 2 UNLOCKED', 'The button has acquired autonomous evasive instincts.', 4000);
       D.hintText.textContent = 'Notice: It is actively attempting to avoid your cursor.';
       FX.confetti();
-    } else if (c === 20) {
-      triggerFlash('rgba(224, 86, 253, 0.3)');
-      showToast('🚨 SYSTEM OVERLOAD', 'Containment is breaking down. Have mercy on the button.', 4500);
-      D.hintText.textContent = 'Critical: Reality anchor degrading.';
-      FX.confetti();
-    } else if (c === 35) {
-      triggerFlash('rgba(0, 255, 136, 0.35)');
-      showToast('☣️ NUCLEAR MELTDOWN', 'Thermal threshold exceeded. Core containment liquefying.', 4500);
-      D.hintText.textContent = 'Radiation levels dangerous. Please evacuate the web page.';
+    } else if (c === 20 && !state.relays.every(Boolean) && !state.gameCompleted) {
+      triggerFlash('rgba(224, 86, 253, 0.4)');
+      showToast('🚨 RECURSIVE LOCKDOWN!', 'Primary core seized. Re-route 3 auxiliary relays in the archives ↓', 5000);
+      D.hintText.textContent = 'Objective: Scroll down to the sub-level archives to restore power.';
+      D.warningText.textContent = 'SYSTEM LOCKED // PRIMARY CORE SEIZED.';
+      D.warningSub.textContent = '⚡ Emergency lockdown engaged. Locate and synchronize the 3 basement relays ↓';
+      D.warningSub.classList.add('has-text');
       FX.confetti();
     } else if (c === 42) {
       triggerFlash('rgba(0, 160, 255, 0.45)');
@@ -1098,12 +1383,6 @@
       D.warningText.textContent = 'THE ANSWER IS 42.';
       D.warningSub.textContent = "Don't panic. Always carry a towel.";
       D.warningSub.classList.add('has-text');
-      FX.confetti();
-    } else if (c === 50) {
-      triggerFlash('rgba(255, 215, 0, 0.5)');
-      showToast('✨ THE SINGULARITY', 'You broke the simulation. The Button is now self-aware.', 6000);
-      D.hintText.textContent = 'Transcended. All resistance was mathematically futile.';
-      unlockAchievement('ascended');
       FX.confetti();
     }
   }
@@ -1147,6 +1426,18 @@
   function updateButtonLabel() {
     if (D.body.classList.contains('disco-mode')) {
       D.btnLabel.innerHTML = 'PARTY<br>MODE';
+      return;
+    }
+    if (state.stage === 5 || state.gameCompleted) {
+      D.btnLabel.innerHTML = state.finalChoice === 'harmony' ? 'FRIEND<br>(^‿^)' : 'TRANSCEND';
+      return;
+    }
+    if (state.meltdownActive) {
+      D.btnLabel.innerHTML = 'OVERHEAT<br>999°C';
+      return;
+    }
+    if (state.lockdownActive) {
+      D.btnLabel.innerHTML = 'LOCKED<br>CORE';
       return;
     }
     const labels = [
@@ -1329,6 +1620,11 @@
         D.classifiedStamp.click();
         return;
       }
+      if (active === D.containmentShield) {
+        e.preventDefault();
+        handleLockdownDeflect();
+        return;
+      }
       if (active && active.classList && active.classList.contains('redacted')) {
         e.preventDefault();
         active.click();
@@ -1344,6 +1640,10 @@
 
     // Escape key
     if (e.key === 'Escape') {
+      if (D.endingDialog && D.endingDialog.open) {
+        D.endingDialog.close();
+        return;
+      }
       if (D.achievementsDialog && D.achievementsDialog.open) {
         D.achievementsDialog.close();
         return;
@@ -1771,9 +2071,11 @@
     // Close any open dialogs
     if (D.resetDialog && D.resetDialog.open) D.resetDialog.close();
     if (D.achievementsDialog && D.achievementsDialog.open) D.achievementsDialog.close();
+    if (D.endingDialog && D.endingDialog.open) D.endingDialog.close();
 
     // Reset DOM Elements
     D.body.className = 'stage-0';
+    D.body.classList.remove('lockdown-active', 'meltdown-active');
     document.documentElement.style.setProperty('--dodge-x', '0px');
     document.documentElement.style.setProperty('--dodge-y', '0px');
     document.documentElement.style.setProperty('--tilt-x', '0deg');
@@ -1830,6 +2132,11 @@
     updateAchievementsBadge();
     updateProtocols();
     renderAchievementsList();
+    updateRelayUI();
+    updateVentUI();
+    if (D.consoleStatusText) {
+      D.consoleStatusText.textContent = 'STATUS: CORE SEIZED — 3 RELAYS REQUIRED TO BYPASS LOCKDOWN';
+    }
 
     showToast('🌀 Amnesia Protocol Complete', 'Timeline purged. The Button sits in pristine silence.', 5000);
     saveState();
@@ -2047,6 +2354,30 @@
 
     // Custom Context Menu Easter Egg
     setupContextMenu();
+
+    // Stage 3-5 Puzzle Listeners
+    if (D.containmentShield) {
+      D.containmentShield.addEventListener('click', handleLockdownDeflect);
+    }
+    if (D.relayBtns) {
+      D.relayBtns.forEach((btn, i) => {
+        if (btn) btn.addEventListener('click', () => handleRelayClick(i));
+      });
+    }
+    if (D.ventValves) {
+      D.ventValves.forEach((valve, i) => {
+        if (valve) valve.addEventListener('click', () => handleVentClick(i));
+      });
+    }
+    if (D.btnEndingHarmony) {
+      D.btnEndingHarmony.addEventListener('click', handleEndingHarmony);
+    }
+    if (D.btnEndingPurge) {
+      D.btnEndingPurge.addEventListener('click', handleEndingPurge);
+    }
+    if (D.btnEndingClose) {
+      D.btnEndingClose.addEventListener('click', handleEndingFreeplay);
+    }
 
     // Idle watcher
     startIdleWatcher();

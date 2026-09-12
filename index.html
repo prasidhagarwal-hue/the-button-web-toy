@@ -89,6 +89,29 @@
         <span id="btn-label">DO NOT<br>CLICK</span>
       </button>
 
+      <!-- Stage 3 Containment Lockdown Shield Barrier -->
+      <div id="containment-shield" class="containment-shield" role="button" tabindex="0" aria-label="Containment shield — system locked, bypass required">
+        <div class="shield-pulse"></div>
+        <div class="shield-badge">🔒 SYSTEM LOCKED</div>
+        <div class="shield-sub">BYPASS REQUIRED ↓</div>
+      </div>
+
+      <!-- Stage 4 Thermal Pressure Vent Valves -->
+      <div id="thermal-vents-layer" class="thermal-vents-layer" aria-hidden="true">
+        <button class="vent-valve" id="vent-valve-0" data-vent="0" aria-label="Vent Pressure Valve Alpha" title="Click to vent thermal pressure">
+          <span class="vent-steam" aria-hidden="true">💨</span>
+          <span class="vent-tag">VALVE α</span>
+        </button>
+        <button class="vent-valve" id="vent-valve-1" data-vent="1" aria-label="Vent Pressure Valve Beta" title="Click to vent thermal pressure">
+          <span class="vent-steam" aria-hidden="true">💨</span>
+          <span class="vent-tag">VALVE β</span>
+        </button>
+        <button class="vent-valve" id="vent-valve-2" data-vent="2" aria-label="Vent Pressure Valve Gamma" title="Click to vent thermal pressure">
+          <span class="vent-steam" aria-hidden="true">💨</span>
+          <span class="vent-tag">VALVE γ</span>
+        </button>
+      </div>
+
       <!-- Tooltip shown on hover/proximity -->
       <div id="tooltip" role="tooltip" aria-hidden="true"></div>
     </div>
@@ -155,6 +178,39 @@
           <p>Do NOT enter the ancient sequences (<span class="redacted" data-reveal="KONAMI DISCO SEQUENCE" role="button" tabindex="0" title="Click or press Enter to declassify">██████████████████████</span>). Unruly disco contamination may ensue.</p>
           <p class="log-reaction">STATUS: Containment integrity decaying with every click.</p>
         </article>
+
+        <article class="log-card log-card-alert" id="log-entry-04">
+          <div class="log-id">ENTRY 04 — EMERGENCY BYPASS PROCEDURE</div>
+          <p>If primary containment enters recursive lockdown, auxiliary power must be routed manually via the three containment relays below.</p>
+          <p class="log-reaction">CRITICAL: Synchronize <span class="badge-code">[ALPHA]</span>, <span class="badge-code">[BETA]</span>, and <span class="badge-code">[GAMMA]</span> to bypass lockdown.</p>
+        </article>
+      </div>
+
+      <!-- Emergency Relays Console Panel -->
+      <div id="basement-console" class="basement-console" aria-label="Emergency Containment Relays">
+        <div class="console-header">
+          <span class="console-led" id="console-status-led" aria-hidden="true"></span>
+          <span class="console-title">AUXILIARY POWER RELAYS // BYPASS CONSOLE</span>
+        </div>
+        <p class="console-prompt">Engage all 3 auxiliary relays to clear primary containment lockdown:</p>
+        <div class="relays-grid">
+          <button class="relay-btn" id="relay-0" data-relay="0" aria-label="Toggle Relay Alpha">
+            <span class="relay-led" aria-hidden="true"></span>
+            <span class="relay-name">RELAY α</span>
+            <span class="relay-state" id="relay-state-0">OFFLINE</span>
+          </button>
+          <button class="relay-btn" id="relay-1" data-relay="1" aria-label="Toggle Relay Beta">
+            <span class="relay-led" aria-hidden="true"></span>
+            <span class="relay-name">RELAY β</span>
+            <span class="relay-state" id="relay-state-1">OFFLINE</span>
+          </button>
+          <button class="relay-btn" id="relay-2" data-relay="2" aria-label="Toggle Relay Gamma">
+            <span class="relay-led" aria-hidden="true"></span>
+            <span class="relay-name">RELAY γ</span>
+            <span class="relay-state" id="relay-state-2">OFFLINE</span>
+          </button>
+        </div>
+        <div class="console-status-text" id="console-status-text">STATUS: CORE SEIZED — 3 RELAYS REQUIRED TO BYPASS LOCKDOWN</div>
       </div>
 
       <div class="basement-footer">
@@ -227,6 +283,52 @@
       <div class="reset-btn-group">
         <button id="confirm-reset-btn" class="danger-btn confirm-btn">YES, PURGE TIMELINE</button>
         <button id="cancel-reset-btn" class="cancel-btn">CANCEL</button>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- ── Dialog: Grand Finale / Declassification Dossier ────────── -->
+  <dialog id="ending-dialog" class="custom-dialog ending-modal" aria-labelledby="ending-title">
+    <div class="dialog-box ending-box">
+      <div class="dossier-header">
+        <div class="dossier-stamp">DECLASSIFIED // SIMULATION COMPLETED</div>
+        <h2 id="ending-title" class="ending-heading">CONTAINMENT DOSSIER: COMPLETE</h2>
+        <p class="ending-desc">You defied the warnings, investigated the archives, stabilized the core, and reached the Singularity.</p>
+      </div>
+
+      <div class="ending-stats-grid">
+        <div class="ending-stat-card">
+          <span class="e-stat-lbl">TOTAL MISTAKES</span>
+          <span id="ending-mistakes-val" class="e-stat-val">0</span>
+        </div>
+        <div class="ending-stat-card">
+          <span class="e-stat-lbl">FINAL SCORE</span>
+          <span id="ending-score-val" class="e-stat-val">0</span>
+        </div>
+        <div class="ending-stat-card">
+          <span class="e-stat-lbl">SECRETS FOUND</span>
+          <span id="ending-secrets-val" class="e-stat-val">0/19</span>
+        </div>
+        <div class="ending-stat-card">
+          <span class="e-stat-lbl">STATUS</span>
+          <span id="ending-status-val" class="e-stat-val status-transcended">TRANSCENDED</span>
+        </div>
+      </div>
+
+      <div class="ending-quote">
+        <p><em>"The Button was never just a trigger. It was a test of curiosity."</em></p>
+      </div>
+
+      <div class="ending-btn-group">
+        <button id="btn-ending-harmony" class="ending-choice-btn harmony">
+          ✨ INITIATE HARMONY (BEFRIEND)
+        </button>
+        <button id="btn-ending-purge" class="ending-choice-btn purge">
+          💥 SUPERNOVA PURGE (RESET)
+        </button>
+        <button id="btn-ending-close" class="ending-choice-btn freeplay">
+          🎮 FREEPLAY SANDBOX
+        </button>
       </div>
     </div>
   </dialog>
