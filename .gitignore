@@ -1,9 +1,10 @@
-# OS
+# OS & System
 .DS_Store
 Thumbs.db
 desktop.ini
+*.directory
 
-# Editor
+# Editor & IDEs
 .vscode/
 .idea/
 *.suo
@@ -11,16 +12,24 @@ desktop.ini
 *.swp
 *.swo
 *~
+*.sublime-workspace
+*.sublime-project
 
-# Node (if ever needed)
+# Node & Package Managers
 node_modules/
 npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 package-lock.json
 
-# Build output
+# Temporary & Build Output
 dist/
 build/
+*.tmp
+*.bak
+*.log
 
-# Env files
+# Environment & Config
 .env
 .env.local
+.env.*.local
