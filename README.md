@@ -1,52 +1,51 @@
 # THE BUTTON
 
-> *"DO NOT PRESS THE BUTTON."* It sits in the center of the screen, completely isolated, starkly illuminated, and explicitly forbidden. You know you shouldn't. You will anyway.
-
-A delightfully subversive, chaotic, and progressive web toy built entirely with **Vanilla HTML, CSS, and JavaScript** — zero external frameworks, zero asset dependencies, and zero regrets.
+An experimental, narrative-driven interactive web toy built entirely with pure web technologies.
 
 ---
 
-## What is it?
+## About
 
-**THE BUTTON** is an experimental, exploration-driven interactive web experience disguised as a classified containment terminal. 
+**THE BUTTON** is an exploratory interactive web toy disguised as a high-security containment terminal. At its core lies a simple, irresistible premise: **Do not click the button.** 
 
-It begins with a simple, unmistakable directive: **Do not click.** But the moment curiosity wins, the system reacts. Every press, pause, twitch, and keystroke unravels a narrative of humorous resistance, system instability, and escalating chaos. As you push further into the containment anomaly, the interface evolves dynamically through distinct psychological stages — unlocking secret experimental protocols, unmasking redacted incident logs, and challenging you to uncover hidden interactive curiosities.
+Once curiosity takes over, the terminal wakes up. Instead of an ordinary clicker, the application functions as a reactive state machine that dynamically evolves across progressive stages of psychological resistance. As the player continues to interact, the button defies input, deploys defensive mechanisms, hides mystery clues across the interface, and eventually challenges the player with an override puzzle that leads to branching narrative endings.
+
+### How It Works
+- **State Progression Engine:** A deterministic state machine tracks user actions, mistake counts, and corruption levels to trigger sequential stages of gameplay.
+- **Dynamic Physics & Evasion:** The button calculates pointer distance and dynamically dodges the cursor using CSS transforms and velocity vectors.
+- **Decoys & Shield Mechanics:** Real-time DOM instantiation spawns holographic decoys and protective shields that deflect user interaction.
+- **Multi-Phase Puzzle Logic:** Players must investigate subtle UI anomalies, collect hidden code fragments, and enter the decrypted sequence into an on-screen cyber keypad.
+- **Client-Side Persistence:** Session progression, unlocked achievements, and high scores automatically persist across browser reloads via `localStorage`.
 
 ---
 
 ## Features
 
-- ⚡ **6 Progressive Stages of Escalation**: Watch the interface transform from a sterile warning terminal to passive-aggressive defiance, existential dread, thermal meltdown, and full-blown singularity corruption.
-- 🎛️ **Live Telemetry & Score Engine**: Real-time *Mistakes Made* counter, dynamic *Anomaly Score* multiplier, containment integrity progress bar, and responsive optical status diode.
-- 🏆 **19 Discovery Achievements**: A dedicated Containment Archives modal tracking milestones, discipline tests, tactile interactions, and unlisted secret discoveries.
-- 🧪 **Unlockable Experimental Protocols Dock**:
-  - **🧲 Gravity Field**: Cursor magnetism drawing the button toward your mouse.
-  - **👥 Ghost Decoys**: Spawns evasive duplicate buttons that scatter upon interaction.
-  - **🎹 Chaos Chords**: Musical arpeggios synthesized on every subsequent click.
-- 🔊 **100% Procedural Audio Engine**: Powered entirely by the native browser **Web Audio API** — clicks, mechanical thuds, warning buzzers, disco synthesizers, and tape-stop reboots generated in real-time with zero external MP3s.
-- 🌌 **Canvas 2D Physics & Particle FX**: High-performance starfield backdrop, responsive cursor interaction sparks, shockwaves, and celebratory milestone confetti bursts.
-- 📁 **Classified Incident Basement**: Scroll beneath the primary viewport to inspect restricted incident logs, interactive rubber stamps, and declassifiable redacted intelligence.
-- 💾 **Robust Session Persistence & Amnesia Reset**: Automatic `localStorage` synchronization with graceful recovery from corrupted data and an intentional *Amnesia Protocol* reset.
-- ♿ **Accessible & Fully Responsive**: Keyboard accessible (`Space`/`Enter`), high-contrast `:focus-visible` styling, fluid viewport scaling across mobile, tablet, and desktop displays.
+- **Interactive Button:** Tactile button with recoil physics, responsive pointer tracking, charging mechanics, and dynamic feedback.
+- **Dynamic Stages:** 5 progressive escalation phases transforming visual themes, warning messages, and terminal behavior.
+- **Decoy Interactions:** Holographic duplicate buttons spawn in real time to distract and evade the player's cursor.
+- **Hidden Clues:** Interactive anomalies hidden within terminal headers, mechanical collars, and classified basements.
+- **Secret Puzzle:** A cyber security number pad requiring code discovery and input validation to bypass lockdown.
+- **Multiple Endings:** A climactic decision terminal featuring three distinct story conclusions with dedicated epilogues.
+- **Achievements:** Comprehensive Containment Archive modal tracking 19 unique milestone and secret achievements.
+- **Easter Eggs:** Hidden keyboard sequences (including the Konami code), audit tampering alerts, cable severance events, and tab visibility detection.
+- **LocalStorage Integration:** Automatic state synchronization that saves progress, high scores, and discovered badges.
+- **Fluid CSS & Canvas Animations:** Custom keyframe transitions, CRT scanline effects, glassmorphic HUD overlays, and Canvas 2D particle bursts.
 
 ---
 
 ## Tech Stack
 
-| Technology | Role |
-|---|---|
-| **HTML5** | Semantic structure, ARIA accessibility attributes, modal dialogs, and classified document markup |
-| **CSS3** | Vanilla styling, custom CSS properties/tokens, responsive typography (`clamp()`), fluid layout, keyframe animations, glassmorphic depth, and high-contrast focus rings |
-| **JavaScript (ES6+)** | Pure Vanilla JS, IIFE modular architecture, state machine progression, custom event buses, Canvas 2D physics loop, and Web Audio API procedural synthesis |
-| **LocalStorage API** | Resilient client-side persistence for click counts, high scores, discovered secrets, protocol toggle states, and corruption levels |
-
-*Zero dependencies: No React, no Tailwind, no jQuery, no external audio files, and no npm packages required.*
+- **HTML5:** Semantic document structure, ARIA accessibility landmarks, and modal dialogs.
+- **CSS3:** Custom CSS properties (design tokens), flexbox/grid layout, fluid typography (`clamp()`), and hardware-accelerated animations.
+- **Vanilla JavaScript (ES6+):** Pure dependency-free script powering the state engine, DOM manipulation, Web Audio API synthesis, and event pipelines.
+- **LocalStorage API:** Defensive client-side persistence for game state and achievement tracking.
 
 ---
 
-## How to Run
+## How to Run Locally
 
-Because THE BUTTON is built with pure web standards, no compilation, bundler, or build step is necessary.
+Because this project is built with vanilla web standards, it requires no package managers, dependencies, or build tools.
 
 ### 1. Clone the Repository
 ```bash
@@ -54,91 +53,100 @@ git clone https://github.com/prasidhagarwal-hue/the-button-web-toy.git
 cd the-button-web-toy
 ```
 
-### 2. Launch in Browser
-You can launch the experience immediately using any of the following methods:
+### 2. Launch the Application
 
-- **Direct File Launch**: Simply double-click `index.html` to open it in Google Chrome, Mozilla Firefox, Microsoft Edge, or Apple Safari.
-- **Python Local Server**:
+Choose any of the following methods:
+
+- **Direct Browser Launch:** Double-click `index.html` to open it directly in any modern browser.
+- **Python HTTP Server:**
   ```bash
   python -m http.server 8000
   ```
-  *Then visit `http://localhost:8000`.*
-- **Node `npx serve`**:
+  Visit [http://localhost:8000](http://localhost:8000) in your browser.
+- **Node `npx serve`:**
   ```bash
   npx serve .
   ```
-- **VS Code Live Server**: Right-click `index.html` and select **"Open with Live Server"**.
+- **VS Code:** Right-click `index.html` and select **"Open with Live Server"**.
+
+---
+
+## How to Play
+
+1. **Observe the Directive:** The terminal clearly tells you not to click the button.
+2. **Defy Instructions:** Click, hover, or interact with the interface to trigger the terminal's defense mechanisms.
+3. **Overcome Evasion & Decoys:** Adapt when the button begins dodging your cursor and creating decoys.
+4. **Investigate the Anomalies:** When containment lockdown occurs, inspect unusual interface elements to discover hidden code digits.
+5. **Crack the Override:** Enter the 3-digit secret code into the security keypad to reach the final terminal stage.
+6. **Choose Your Ending:** Decide the ultimate fate of The Button.
 
 ---
 
 ## Interactions
 
-THE BUTTON is designed to be played like an exploratory puzzle toy. Here are some publicly discoverable interactions to try:
+The experience is built around discovery. Key discoverable interactions include:
 
-- **Single Click**: The cardinal sin. Defy the initial directive and see what happens.
-- **Rapid Double Click**: Click in quick succession to test the button's recoil suspension.
-- **Sustained Pressure**: Press and hold down on the button for several continuous seconds to build thermal charge.
-- **Cursor Agitation**: Wave your mouse rapidly over the button until its mechanical gyroscopes lose balance.
-- **Zen Patience**: Can you stop clicking completely and let the terminal idle in silence?
-- **Deep Scroll**: Scroll past the viewport boundary into the underground maintenance vault.
-- **Cable Tampering**: Look for vulnerable hardware in the basement and sever the emergency override cable.
-- **Keyboard Conversations**: The terminal is always listening. Try typing words of politeness, caffeine cravings, or classic video game sequences.
-- **Optical Diode**: Click on the HUD telemetry status indicator light multiple times.
-
-*(Additional classified secrets and Easter eggs remain hidden for curious players to uncover).*
-
----
-
-## Screenshots
-
-<!-- Add your screenshots in an /assets or /screenshots directory and update the links below -->
-
-| The Warning (Stage 0) | Passive-Aggressive Escalation (Stage 2) |
-|:---:|:---:|
-| ![Stage 0 Warning Placeholder](https://via.placeholder.com/600x340/0a0a0f/ff3b30?text=THE+BUTTON+-+STAGE+0) | ![Stage 2 Escalation Placeholder](https://via.placeholder.com/600x340/120f08/ff9f0a?text=THE+BUTTON+-+STAGE+2) |
-
-| Thermal Meltdown & Protocols (Stage 4) | Containment Archives & Achievements |
-|:---:|:---:|
-| ![Stage 4 Meltdown Placeholder](https://via.placeholder.com/600x340/1a0505/ff453a?text=THE+BUTTON+-+STAGE+4) | ![Achievements Drawer Placeholder](https://via.placeholder.com/600x340/0d0e14/64d2ff?text=ACHIEVEMENTS+DRAWER) |
-
----
-
-## Demo
-
-- 🌐 **Live Interactive Website**: [https://prasidhagarwal-hue.github.io/the-button-web-toy/](https://prasidhagarwal-hue.github.io/the-button-web-toy/)
-- 📹 **Gameplay Walkthrough Video**: `https://www.youtube.com/watch?v=your-demo-video-id` *(Coming soon)*
+- **Single & Multi-Clicks:** Testing the button's suspension and escalating mistake tallies.
+- **Press & Hold:** Building up sustained thermal energy to trigger containment warnings.
+- **Cursor Agitation:** Rapid mouse movement over the button provoking defensive recoil.
+- **Underground Vault Scroll:** Scrolling beneath the main viewport to inspect classified logs and emergency hardware.
+- **Hardware Cable Severance:** Cutting the emergency backup cable to trigger an immediate high-voltage fault.
+- **Interface Diode & HUD Tamper:** Clicking the optical status diode and mistake counter for audit violation reactions.
+- **Keyboard Codes:** Typing contextual phrases or classic gaming sequences to trigger hidden responses.
 
 ---
 
 ## Project Structure
 
 ```
-Webtoy/
+the-button-web-toy/
 ├── index.html     # Semantic structure, accessible HUD, modal dialogs, and archives
-├── style.css      # Design token system, responsive typography, keyframe animations, and stage themes
-├── script.js      # State machine engine, Web Audio synthesizer, Canvas 2D particle system, and Easter eggs
-├── .gitignore     # Exclusion rules for OS, editor, node, and temporary files
-└── README.md      # Comprehensive technical documentation and exploration guide
+├── style.css      # Design token system, responsive layouts, stage themes, and animations
+├── script.js      # Core state machine, DOM event handlers, Web Audio synthesis, and puzzle logic
+├── .gitignore     # Exclusion rules for temporary files and OS metadata
+└── README.md      # Project overview, documentation, and technical breakdown
 ```
 
-### Key Architectural Highlights in `script.js`
-- **State Machine (`State`)**: Encapsulates runtime progression, score calculations, and synchronization with `localStorage`.
-- **Procedural Sound Engine (`Sound`)**: Synthesizes harmonic clicks, sub-bass rumbles, fanfare chords, and white noise sweeps via the Web Audio API.
-- **Physics & Particle Engine (`Particles`)**: Manages the high-performance background starfield, cursor sparks, and celebratory confetti in Canvas 2D.
-- **Input Pipeline**: Consolidated listeners handling pointer dynamics, multi-touch events, scroll offsets, long-press timers, and keyboard sequence buffers.
+### Key Modules in `script.js`
+- **`State` & `Progression`:** Manages deterministic stage transitions, click counters, anomaly scoring, and local storage reconciliation.
+- **`Sound` (Web Audio API):** Generates 100% procedural synthetic audio (clicks, rumbles, buzzers, victory fanfare) with zero external audio assets.
+- **`Particles` (Canvas 2D):** Runs a background particle field, cursor interaction sparks, and celebratory confetti effects.
+- **Input Pipeline:** Manages consolidated keyboard listeners, pointer coordinates, touch gestures, and event debouncing.
 
 ---
 
-## What I Learned
+## Screenshots
 
-Building **THE BUTTON** provided deep hands-on exploration of pure, dependency-free frontend engineering:
+<!-- Add your screenshots to an /assets or /screenshots directory and update the links below -->
 
-1. **State Machines in Vanilla JavaScript**: Architecting a deterministic, multi-stage state machine that coordinates visuals, sounds, and UI text without external reactive libraries.
-2. **Procedural Web Audio API**: Designing expressive, tactile audio feedback (synthesizer arpeggios, frequency sweeps, noise envelopes) entirely in code, removing the network overhead of audio asset loading.
-3. **Canvas 2D Particle Simulation**: Implementing smooth 60 FPS physics loops (gravity, velocity, rotational damping) on an overlay canvas layer without blocking user interaction.
-4. **Resilient Client-Side Storage**: Structuring defensive serialization/deserialization routines that guard against corrupted `localStorage` data and provide instant state recovery.
-5. **Accessibility & Cross-Platform Ergonomics**: Ensuring modern touch-target sizing (44px+), zero-overflow responsive fluid design (`clamp()`), and full keyboard navigation (`:focus-visible`, `tabindex`, ARIA roles).
+| Stage 0: The Warning | Stage 2: Evasion & Decoys |
+|:---:|:---:|
+| ![Stage 0 Screenshot](https://via.placeholder.com/600x340/0a0a0f/ff3b30?text=Stage+0+-+The+Warning) | ![Stage 2 Screenshot](https://via.placeholder.com/600x340/120f08/ff9f0a?text=Stage+2+-+Decoys) |
+
+| Stage 4: Cyber Keypad | Stage 5: Final Choice |
+|:---:|:---:|
+| ![Stage 4 Screenshot](https://via.placeholder.com/600x340/0d111a/00ff88?text=Stage+4+-+Keypad) | ![Stage 5 Screenshot](https://via.placeholder.com/600x340/1a1305/ffd700?text=Stage+5+-+Final+Choice) |
 
 ---
 
-*Made with questionable judgment and zero regrets. Do not press the button.*
+## Demo
+
+- 🌐 **Live Demo:** [https://prasidhagarwal-hue.github.io/the-button-web-toy/](https://prasidhagarwal-hue.github.io/the-button-web-toy/)
+- 📹 **Demo Video:** `[Coming Soon / YouTube Link]`
+
+---
+
+## Learning / Takeaways
+
+Building **THE BUTTON** demonstrates core frontend software engineering concepts without relying on external libraries or frameworks:
+
+- **DOM Manipulation:** High-frequency, dynamic creation and updating of DOM elements, CSS classes, attributes, and modal dialogs.
+- **Robust Event Handling:** Coordinated event handling across pointers, touch, scroll, keyboard shortcuts, and custom delegated event listeners with debouncing.
+- **State Machine Architecture:** Deterministic management of complex multi-stage progression and multiple branching outcomes.
+- **Resilient Local Storage:** Defensive data serialization and deserialization guarding against corrupt or missing client-side state.
+- **Pure CSS Animations & FX:** Combining keyframe sequences, 3D transforms, filters, and design tokens for a cohesive retro-futuristic terminal aesthetic.
+- **Responsive & Accessible Design:** Fully fluid layouts utilizing `clamp()`, flexible CSS Grid/Flexbox, keyboard navigability (`:focus-visible`), and ARIA semantics.
+
+---
+
+*Do not press the button.*
