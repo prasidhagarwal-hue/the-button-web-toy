@@ -314,6 +314,7 @@
     D.scoreValue           = g('score-value');
     D.counterBox           = g('hud-counter-box');
     D.counterValue         = g('counter-value');
+    D.resetMistakesBtn     = g('reset-mistakes-btn');
     D.hudControls          = g('hud-controls');
     D.achievementsBtn      = g('achievements-btn');
     D.achievementsBadge    = g('achievements-badge');
@@ -1216,6 +1217,7 @@
     const digit = CLUE_DIGITS[idx];
     showToast('🔍 Anomaly Discovered!', `Clue ${idx + 1}/3 found! Revealed Code Digit: [${digit}]`, 4000);
 
+    if (D.investigationBar) D.investigationBar.hidden = false;
     updateInvestigationUI();
 
     // Check if all 3 clues found
@@ -1841,9 +1843,15 @@
         active === D.closeDialogBtn ||
         active === D.dialogWipeBtn ||
         active === D.confirmResetBtn ||
-        active === D.cancelResetBtn
+        active === D.cancelResetBtn ||
+        active === D.resetMistakesBtn
       ) {
         return; // Allow native dialog / control button trigger
+      }
+      if (active === D.clue1 || active === D.clue2 || active === D.clue3) {
+        e.preventDefault();
+        active.click();
+        return;
       }
       if (active === D.hudStatusLed) {
         e.preventDefault();
@@ -1857,7 +1865,7 @@
       }
       if (active === D.containmentShield) {
         e.preventDefault();
-        handleLockdownDeflect();
+        handleStage3Deflect();
         return;
       }
       if (active && active.classList && active.classList.contains('redacted')) {
@@ -2623,6 +2631,15 @@
 
     if (D.containmentShield) {
       D.containmentShield.addEventListener('click', handleStage3Deflect);
+    }
+
+    // Reset Mistakes Button Listener
+    if (D.resetMistakesBtn) {
+      D.resetMistakesBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        resetAllProgress();
+        showToast('↺ Mistakes Reset', 'Mistakes counter reset to 0. Starting fresh!', 3500);
+      });
     }
 
     // Stage 4 Security Keypad Listeners

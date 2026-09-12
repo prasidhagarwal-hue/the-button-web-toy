@@ -401,6 +401,39 @@ a:focus-visible,
   80% { transform: translateX(3px) rotate(1deg); }
 }
 
+.reset-mistakes-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3rem;
+  margin-top: 0.35rem;
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  padding: 0.22rem 0.55rem;
+  border-radius: 4px;
+  background: rgba(255, 71, 87, 0.12);
+  border: 1px solid rgba(255, 71, 87, 0.35);
+  color: #ff6b81;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
+  outline: none;
+}
+
+.reset-mistakes-btn:hover {
+  background: #ff4757;
+  color: #fff;
+  border-color: #ff4757;
+  box-shadow: 0 0 14px rgba(255, 71, 87, 0.55);
+  transform: translateY(-1px);
+}
+
+.reset-mistakes-btn:active {
+  transform: translateY(1px);
+}
+
 /* ── 6. HUD Controls Dock ────────────────────────────────── */
 #hud-controls {
   position: fixed;
@@ -2143,41 +2176,50 @@ body.meltdown-active .thermal-vents-layer {
 .directive-tag-wrap {
   display: inline-flex;
   align-items: center;
-  gap: 0.6rem;
+  gap: 0.75rem;
   margin-bottom: 0.75rem;
   position: relative;
+  pointer-events: auto !important;
+  z-index: 50;
 }
 
 .hidden-clue {
-  cursor: pointer;
+  cursor: pointer !important;
   user-select: none;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   transition: all 0.25s ease;
   outline: none;
+  pointer-events: auto !important;
+  z-index: 50;
 }
 
 /* Clue 1: Subtle glitch glyph near directive tag */
 .clue-glyph {
-  font-size: 0.95rem;
-  color: rgba(224, 86, 253, 0.35);
-  padding: 2px 6px;
-  border-radius: 4px;
-  border: 1px dashed rgba(224, 86, 253, 0.25);
-  animation: clueGlyphPulse 2.8s infinite ease-in-out;
+  font-size: 1.15rem;
+  color: rgba(224, 86, 253, 0.6);
+  padding: 4px 10px;
+  border-radius: 6px;
+  border: 1px dashed rgba(224, 86, 253, 0.45);
+  background: rgba(224, 86, 253, 0.08);
+  animation: clueGlyphPulse 2.2s infinite ease-in-out;
+  cursor: pointer !important;
+  pointer-events: auto !important;
 }
 
 .clue-glyph:hover, .clue-glyph:focus-visible {
-  color: #e056fd;
+  color: #fff;
   border-color: #e056fd;
-  text-shadow: 0 0 10px #e056fd;
-  transform: scale(1.2);
+  background: rgba(224, 86, 253, 0.25);
+  box-shadow: 0 0 16px #e056fd;
+  text-shadow: 0 0 12px #e056fd;
+  transform: scale(1.25);
 }
 
 @keyframes clueGlyphPulse {
-  0%, 100% { opacity: 0.3; transform: scale(1); }
-  50% { opacity: 0.85; transform: scale(1.1); text-shadow: 0 0 8px rgba(224, 86, 253, 0.6); }
+  0%, 100% { opacity: 0.45; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.12); box-shadow: 0 0 10px rgba(224, 86, 253, 0.5); text-shadow: 0 0 8px rgba(224, 86, 253, 0.8); }
 }
 
 /* Clue 2: Micro-latch on the button collar */
