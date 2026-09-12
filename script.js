@@ -161,6 +161,55 @@
       title: 'Transcendent Defiance',
       desc: 'Reached Stage 5 // The Singularity (50+ clicks).',
       pts: 1000
+    },
+    {
+      id: 'deep_pressure',
+      icon: '⏱️',
+      title: 'Deep Pressure Therapy',
+      desc: 'Held the button down continuously for 3 seconds.',
+      pts: 350
+    },
+    {
+      id: 'tickle_monster',
+      icon: '🪶',
+      title: 'Tickle Reflex',
+      desc: 'Discovered the classified tickle frequency with rapid taps.',
+      pts: 200
+    },
+    {
+      id: 'red_pill',
+      icon: '💊',
+      title: 'The Red Pill',
+      desc: 'Typed "matrix" to deconstruct the button simulation.',
+      pts: 300
+    },
+    {
+      id: 'caffeine_overdose',
+      icon: '☕',
+      title: 'Barista Protocol',
+      desc: 'Typed "coffee" to hyper-charge the button with espresso.',
+      pts: 250
+    },
+    {
+      id: 'morse_operator',
+      icon: '📡',
+      title: 'Distress Beacon',
+      desc: 'Tapped the optical status diode 5 times to broadcast SOS.',
+      pts: 300
+    },
+    {
+      id: 'whistleblower',
+      icon: '🕵️',
+      title: 'Declassified Leak',
+      desc: 'Scratched away all top-secret redaction bars in the archives.',
+      pts: 250
+    },
+    {
+      id: 'answer_to_everything',
+      icon: '🌌',
+      title: 'The Ultimate Answer',
+      desc: 'Reached exactly 42 mistakes. Always know where your towel is.',
+      pts: 420
     }
   ];
 
@@ -271,6 +320,8 @@
     D.confirmResetBtn      = g('confirm-reset-btn');
     D.cancelResetBtn       = g('cancel-reset-btn');
     D.toastContainer       = g('toast-container');
+    D.classifiedStamp      = g('classified-stamp');
+    D.redactedSpans        = document.querySelectorAll('.redacted');
   }
 
   /* ==========================================================
@@ -395,6 +446,25 @@
         osc.start(t);
         osc.stop(t + 0.81);
       } catch (_) {}
+    },
+    charging(progress) {
+      const freq = 120 + progress * 580;
+      playTone(freq, 0.1, 'sawtooth', 0.15);
+    },
+    giggle() {
+      const pitches = [520, 680, 590, 780, 880];
+      pitches.forEach((p, i) => playTone(p, 0.08, 'sine', 0.18, i * 0.06));
+    },
+    beep() {
+      playTone(880, 0.06, 'triangle', 0.16);
+    },
+    morse(isDash) {
+      const dur = isDash ? 0.22 : 0.08;
+      playTone(750, dur, 'sine', 0.2);
+    },
+    stamp() {
+      playTone(85, 0.18, 'triangle', 0.35);
+      playTone(180, 0.08, 'square', 0.2, 0.02);
     }
   };
 
@@ -771,6 +841,69 @@
   let subIdx     = 0;
   let lastClickTime = 0;
   let isDormant = false;
+  let recentClicks = [];
+  let pressTimer = null;
+  let chargeInterval = null;
+  let chargeProgress = 0;
+  let isOvercharged = false;
+
+  function handlePressStart() {
+    if (isOvercharged || isDormant) return;
+    chargeProgress = 0;
+    D.button.classList.add('charging');
+
+    chargeInterval = setInterval(() => {
+      chargeProgress = Math.min(chargeProgress + 0.035, 1);
+      Sound.charging(chargeProgress);
+    }, 100);
+
+    pressTimer = setTimeout(() => {
+      triggerThermalOvercharge();
+    }, 3000);
+  }
+
+  function handlePressEnd() {
+    if (pressTimer) {
+      clearTimeout(pressTimer);
+      pressTimer = null;
+    }
+    if (chargeInterval) {
+      clearInterval(chargeInterval);
+      chargeInterval = null;
+    }
+    D.button.classList.remove('charging');
+  }
+
+  function triggerThermalOvercharge() {
+    handlePressEnd();
+    isOvercharged = true;
+    Sound.zap();
+    triggerFlash('rgba(255, 255, 255, 0.95)');
+    addBodyClass('shake', 700);
+    D.btnLabel.innerHTML = 'THERMAL<br>VENTING!';
+    addScore(350, '⏱️ Long Press');
+    unlockAchievement('deep_pressure');
+    showToast('💥 Core Overcharge', 'You held down the forbidden trigger for 3 solid seconds!', 4500);
+    D.warningSub.textContent = 'THERMAL VENTING INITIATED. Core containment liquefied.';
+    D.warningSub.classList.add('has-text');
+
+    setTimeout(() => {
+      isOvercharged = false;
+      updateButtonLabel();
+    }, 3000);
+  }
+
+  function triggerTickle() {
+    Sound.giggle();
+    D.button.classList.add('tickle-wobble');
+    setTimeout(() => D.button.classList.remove('tickle-wobble'), 750);
+    D.btnLabel.innerHTML = 'HEHEHE!<br>STOP IT!';
+    addScore(200, '🪶 Tickle');
+    unlockAchievement('tickle_monster');
+    showToast('🪶 Tickle Reflex Triggered', 'Turns out The Button is extremely ticklish.', 4000);
+    setTimeout(() => updateButtonLabel(), 1800);
+    recentClicks = [];
+  }
 
   function handleClick(e) {
     const now = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
@@ -780,6 +913,13 @@
     // Wake up if sleeping
     if (isDormant) {
       wakeUp('click');
+    }
+
+    // Tickle reflex detection (5 clicks within 1200ms)
+    recentClicks.push(now);
+    if (recentClicks.length > 5) recentClicks.shift();
+    if (recentClicks.length === 5 && (recentClicks[4] - recentClicks[0] < 1200)) {
+      triggerTickle();
     }
 
     // Double-click detection (< 300ms)
@@ -842,12 +982,14 @@
     // Button label mutation
     updateButtonLabel();
 
-    // Warnings cycling
-    D.warningText.textContent = WARNINGS[Math.min(warningIdx, WARNINGS.length - 1)];
-    warningIdx = (warningIdx + 1) % WARNINGS.length;
+    // Warnings cycling (preserve special milestone text on 42)
+    if (state.clickCount !== 42) {
+      D.warningText.textContent = WARNINGS[Math.min(warningIdx, WARNINGS.length - 1)];
+      warningIdx = (warningIdx + 1) % WARNINGS.length;
+    }
 
-    // Subtext message (if not electrified)
-    if (!state.cablePulled && !D.button.classList.contains('electrified')) {
+    // Subtext message (if not electrified and not milestone 42)
+    if (!state.cablePulled && !D.button.classList.contains('electrified') && state.clickCount !== 42) {
       D.warningSub.textContent = SUB_WARNINGS[subIdx % SUB_WARNINGS.length];
       D.warningSub.classList.add('has-text');
       subIdx++;
@@ -947,6 +1089,15 @@
       triggerFlash('rgba(0, 255, 136, 0.35)');
       showToast('☣️ NUCLEAR MELTDOWN', 'Thermal threshold exceeded. Core containment liquefying.', 4500);
       D.hintText.textContent = 'Radiation levels dangerous. Please evacuate the web page.';
+      FX.confetti();
+    } else if (c === 42) {
+      triggerFlash('rgba(0, 160, 255, 0.45)');
+      addScore(420, '🌌 Answer to Life');
+      unlockAchievement('answer_to_everything');
+      showToast('🌌 The Ultimate Answer', '42: The answer to the ultimate question of life, the universe, and everything.', 5500);
+      D.warningText.textContent = 'THE ANSWER IS 42.';
+      D.warningSub.textContent = "Don't panic. Always carry a towel.";
+      D.warningSub.classList.add('has-text');
       FX.confetti();
     } else if (c === 50) {
       triggerFlash('rgba(255, 215, 0, 0.5)');
@@ -1275,6 +1426,36 @@
       D.warningSub.classList.add('has-text');
       showToast('✨ Abracadabra', 'A momentary aura of magic enveloped The Button.', 3200);
       keyBuffer = [];
+    } else if (str.endsWith('matrix')) {
+      document.body.classList.toggle('matrix-mode');
+      Sound.secret();
+      unlockAchievement('red_pill');
+      showToast('💊 The Matrix Revealed', 'Wake up, Neo... The Button has you.', 4500);
+      D.warningText.textContent = 'WAKE UP, NEO...';
+      D.warningSub.textContent = 'The digital veil has fractured. Follow the green rabbit.';
+      D.warningSub.classList.add('has-text');
+      keyBuffer = [];
+    } else if (str.endsWith('coffee')) {
+      Sound.chime();
+      unlockAchievement('caffeine_overdose');
+      showToast('☕ Barista Protocol', '100% Arabica espresso injected into The Button!', 4000);
+      FX.confetti();
+      D.warningSub.textContent = '☕ CAFFEINE OVERDRIVE: Button twitch speed increased by 400%.';
+      D.warningSub.classList.add('has-text');
+      keyBuffer = [];
+    } else if (str.endsWith('flip') || str.endsWith('barrel')) {
+      Sound.dizzy();
+      D.button.classList.add('barrel-roll');
+      setTimeout(() => D.button.classList.remove('barrel-roll'), 1100);
+      showToast('🛩️ Do a Barrel Roll!', 'Fox McCloud salutes your aeronautical input.', 3000);
+      keyBuffer = [];
+    } else if (str.endsWith('xyzzy')) {
+      document.body.classList.toggle('invert-mode');
+      Sound.zap();
+      showToast('🔮 Colossal Cave', 'A hollow voice whispers: "Fool".', 3500);
+      D.warningSub.textContent = 'A hollow voice echoes from the mainframe: "Fool."';
+      D.warningSub.classList.add('has-text');
+      keyBuffer = [];
     }
   }
 
@@ -1470,6 +1651,88 @@
   }
 
   /* ==========================================================
+     13.5 UNEXPECTED INTERACTIONS & SECRETS
+     ========================================================== */
+
+  let ledClicks = 0;
+  let ledTimer = null;
+
+  function handleLedClick() {
+    ledClicks++;
+    Sound.beep();
+    clearTimeout(ledTimer);
+    ledTimer = setTimeout(() => { ledClicks = 0; }, 1800);
+
+    if (ledClicks >= 5) {
+      ledClicks = 0;
+      triggerMorseBeacon();
+    }
+  }
+
+  function triggerMorseBeacon() {
+    if (D.hudStatusLed) D.hudStatusLed.classList.add('morse-active');
+
+    // SOS morse timing sequence: 3 short, 3 long, 3 short
+    const sos = [0, 150, 300, 600, 900, 1200, 1500, 1650, 1800];
+    const isDash = [false, false, false, true, true, true, false, false, false];
+    sos.forEach((t, i) => {
+      setTimeout(() => Sound.morse(isDash[i]), t);
+    });
+
+    addScore(300, '📡 S.O.S.');
+    unlockAchievement('morse_operator');
+    showToast('📡 Distress Beacon Broadcasting', 'Optical status diode transmitting emergency S.O.S. to deep space!', 5000);
+    D.warningSub.textContent = 'TRANSMITTING // S-O-S // COORDINATES BROADCAST TO DEEP SPACE.';
+    D.warningSub.classList.add('has-text');
+
+    setTimeout(() => {
+      if (D.hudStatusLed) D.hudStatusLed.classList.remove('morse-active');
+    }, 4500);
+  }
+
+  function setupClassifiedSecrets() {
+    if (D.redactedSpans) {
+      D.redactedSpans.forEach(span => {
+        const reveal = () => {
+          if (span.classList.contains('revealed')) return;
+          span.classList.add('revealed');
+          span.textContent = span.dataset.reveal || '[DECLASSIFIED]';
+          Sound.buzz();
+
+          // Check if all revealed
+          const allRevealed = Array.from(D.redactedSpans).every(s => s.classList.contains('revealed'));
+          if (allRevealed) {
+            Sound.achievement();
+            FX.confetti();
+            addScore(250, '🕵️ Declassified');
+            unlockAchievement('whistleblower');
+            showToast('🕵️ All Archives Declassified', 'You uncovered every black-budget redaction in the archives!', 4500);
+          }
+        };
+
+        span.addEventListener('click', reveal);
+        span.addEventListener('mouseenter', reveal);
+      });
+    }
+
+    if (D.classifiedStamp) {
+      D.classifiedStamp.addEventListener('click', () => {
+        Sound.stamp();
+        const header = document.querySelector('.classified-header');
+        if (header) {
+          const mark = document.createElement('div');
+          mark.className = 'stamp-overlay-mark';
+          mark.textContent = 'DECLASSIFIED';
+          header.appendChild(mark);
+          addScore(50, '🗂️ Stamp');
+          showToast('🗂️ Document Stamped', 'Classified archive stamped: DECLASSIFIED.', 2500);
+          setTimeout(() => mark.remove(), 4000);
+        }
+      });
+    }
+  }
+
+  /* ==========================================================
      14. RESET / AMNESIA PROTOCOL
      ========================================================== */
 
@@ -1524,6 +1787,14 @@
     D.button.style.opacity = '1';
     D.button.style.pointerEvents = 'auto';
     D.btnLabel.innerHTML = 'DO NOT<br>CLICK';
+
+    if (D.redactedSpans) {
+      D.redactedSpans.forEach(s => {
+        s.classList.remove('revealed');
+        s.textContent = '████████████████████';
+      });
+    }
+    document.body.classList.remove('matrix-mode', 'invert-mode', 'disco-mode');
 
     if (D.wireBtn) {
       D.wireBtn.textContent = 'DO NOT PULL CABLE';
@@ -1604,6 +1875,22 @@
     // Attach Event Listeners: Button
     D.button.addEventListener('click', handleClick);
     D.button.addEventListener('dblclick', handleDoubleClick);
+
+    // Long-press charging listeners on Button
+    D.button.addEventListener('mousedown', handlePressStart);
+    D.button.addEventListener('mouseup', handlePressEnd);
+    D.button.addEventListener('mouseleave', handlePressEnd);
+    D.button.addEventListener('touchstart', handlePressStart, { passive: true });
+    D.button.addEventListener('touchend', handlePressEnd);
+    D.button.addEventListener('touchcancel', handlePressEnd);
+
+    // Status LED Morse Easter Egg listener
+    if (D.hudStatusLed) {
+      D.hudStatusLed.addEventListener('click', handleLedClick);
+    }
+
+    // Setup classified document interactive secrets
+    setupClassifiedSecrets();
 
     // Hover tooltip
     D.button.addEventListener('mouseenter', () => {

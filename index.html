@@ -56,7 +56,7 @@
   <!-- ── Floating Control Dock (Achievements, Reset, Sound) ─── -->
   <nav id="hud-controls" aria-label="Controls">
     <button id="achievements-btn" class="hud-btn" aria-label="View achievements" title="View Achievements">
-      🏆 <span id="achievements-badge">0/12</span>
+      🏆 <span id="achievements-badge">0/19</span>
     </button>
     <button id="reset-btn" class="hud-btn" aria-label="Amnesia Protocol: Reset progress" title="Amnesia Protocol (Reset)">
       🔄
@@ -132,7 +132,7 @@
   <section id="basement" aria-label="Classified Archives">
     <div class="basement-container">
       <div class="classified-header">
-        <span class="classified-stamp">TOP SECRET // LEVEL 5</span>
+        <span class="classified-stamp" id="classified-stamp" title="Click to stamp classified document">TOP SECRET // LEVEL 5</span>
         <h2 class="classified-title">INCIDENT LOG #084-B: THE BUTTON PROTOCOL</h2>
         <p class="classified-meta">TERMINAL ARCHIVE // REVISION 4.19 // ACCESS: RESTRICTED</p>
       </div>
@@ -141,18 +141,18 @@
         <article class="log-card">
           <div class="log-id">ENTRY 01 — INITIAL CONTAINMENT</div>
           <p>The Button appeared at 00:00:00. Clear directives were placed on every surface in 72pt bold font reading: <em>"DO NOT CLICK."</em></p>
-          <p class="log-reaction">OBSERVATION: Subject immediately clicked it. Humanity has failed the simplest test.</p>
+          <p class="log-reaction">OBSERVATION: True purpose: <span class="redacted" data-reveal="DOORBELL FOR COSMIC INTERNET ENTITIES" title="Click or hover to declassify">██████████████████████████████</span></p>
         </article>
 
         <article class="log-card">
           <div class="log-id">ENTRY 02 — UNUSUAL BEHAVIOR PATTERNS</div>
           <p>Subject attempted multiple angles: double clicks, erratic mouse twitches, scrolling down into maintenance vaults, and typing words of appeasement.</p>
-          <p class="log-reaction">NOTE: The Button does not negotiate with apologies. But it does remember them.</p>
+          <p class="log-reaction">INTERNAL MEMO: <span class="redacted" data-reveal="THE BUTTON ACTUALLY LOVES ATTENTION" title="Click or hover to declassify">█████████████████████████████████</span></p>
         </article>
 
         <article class="log-card">
           <div class="log-id">ENTRY 03 — DANGEROUS OVERLOAD WARNING</div>
-          <p>Do NOT enter the ancient sequences (<span class="redacted">↑ ↑ ↓ ↓ ← → ← → B A</span>). Unruly disco contamination may ensue.</p>
+          <p>Do NOT enter the ancient sequences (<span class="redacted" data-reveal="KONAMI DISCO SEQUENCE" title="Click or hover to declassify">██████████████████████</span>). Unruly disco contamination may ensue.</p>
           <p class="log-reaction">STATUS: Containment integrity decaying with every click.</p>
         </article>
       </div>
@@ -183,7 +183,7 @@
       <div class="dialog-header">
         <div class="dialog-title-group">
           <h2 id="dialog-title" class="dialog-title">🏆 CONTAINMENT ARCHIVES</h2>
-          <span class="dialog-sub">UNLOCKED: <strong id="dialog-unlocked-badge">0/12</strong></span>
+          <span class="dialog-sub">UNLOCKED: <strong id="dialog-unlocked-badge">0/19</strong></span>
         </div>
         <button id="close-dialog-btn" class="dialog-close-btn" aria-label="Close dialog">✕</button>
       </div>
