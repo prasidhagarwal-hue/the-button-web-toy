@@ -50,8 +50,8 @@ Because THE BUTTON is built with pure web standards, no compilation, bundler, or
 
 ### 1. Clone the Repository
 ```bash
-git clone https://github.com/your-username/the-button.git
-cd the-button
+git clone https://github.com/prasidhagarwal-hue/the-button-web-toy.git
+cd the-button-web-toy
 ```
 
 ### 2. Launch in Browser
@@ -105,7 +105,7 @@ THE BUTTON is designed to be played like an exploratory puzzle toy. Here are som
 
 ## Demo
 
-- 🌐 **Live Interactive Website**: `https://your-username.github.io/the-button/` *(Coming soon)*
+- 🌐 **Live Interactive Website**: [https://prasidhagarwal-hue.github.io/the-button-web-toy/](https://prasidhagarwal-hue.github.io/the-button-web-toy/)
 - 📹 **Gameplay Walkthrough Video**: `https://www.youtube.com/watch?v=your-demo-video-id` *(Coming soon)*
 
 ---
