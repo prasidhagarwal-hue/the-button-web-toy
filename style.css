@@ -2433,6 +2433,14 @@ body.meltdown-active .thermal-vents-layer {
   text-shadow: 0 0 12px rgba(0, 255, 136, 0.6);
 }
 
+.keypad-digit.filled {
+  color: #00ff88;
+  text-shadow: 0 0 16px rgba(0, 255, 136, 0.9), 0 0 26px rgba(0, 255, 136, 0.5);
+  transform: scale(1.1);
+  display: inline-block;
+  transition: transform 0.12s ease;
+}
+
 .keypad-clues-hint {
   font-family: var(--font-mono);
   font-size: 0.72rem;
@@ -2465,7 +2473,7 @@ body.meltdown-active .thermal-vents-layer {
   border-radius: 8px;
   padding: 0.75rem 0;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all 0.12s ease;
   user-select: none;
   touch-action: manipulation;
   pointer-events: auto !important;
@@ -2479,8 +2487,13 @@ body.meltdown-active .thermal-vents-layer {
   box-shadow: 0 4px 14px rgba(0, 255, 136, 0.3);
 }
 
-.kp-btn:active {
-  transform: translateY(1px);
+.kp-btn:active,
+.kp-btn.pressed {
+  background: rgba(0, 255, 136, 0.35) !important;
+  color: #ffffff !important;
+  border-color: #00ff88 !important;
+  transform: scale(0.92) !important;
+  box-shadow: 0 0 16px rgba(0, 255, 136, 0.7) !important;
 }
 
 .kp-btn.kp-action {

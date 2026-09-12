@@ -140,19 +140,19 @@
       <div class="keypad-clues-hint" id="keypad-clues-hint">
         Discovered Digits: <strong id="hint-digits-text">? - ? - ?</strong>
       </div>
-      <div class="keypad-grid">
-        <button type="button" class="kp-btn" data-key="1" onclick="window.handleKeypadKey && window.handleKeypadKey('1')">1</button>
-        <button type="button" class="kp-btn" data-key="2" onclick="window.handleKeypadKey && window.handleKeypadKey('2')">2</button>
-        <button type="button" class="kp-btn" data-key="3" onclick="window.handleKeypadKey && window.handleKeypadKey('3')">3</button>
-        <button type="button" class="kp-btn" data-key="4" onclick="window.handleKeypadKey && window.handleKeypadKey('4')">4</button>
-        <button type="button" class="kp-btn" data-key="5" onclick="window.handleKeypadKey && window.handleKeypadKey('5')">5</button>
-        <button type="button" class="kp-btn" data-key="6" onclick="window.handleKeypadKey && window.handleKeypadKey('6')">6</button>
-        <button type="button" class="kp-btn" data-key="7" onclick="window.handleKeypadKey && window.handleKeypadKey('7')">7</button>
-        <button type="button" class="kp-btn" data-key="8" onclick="window.handleKeypadKey && window.handleKeypadKey('8')">8</button>
-        <button type="button" class="kp-btn" data-key="9" onclick="window.handleKeypadKey && window.handleKeypadKey('9')">9</button>
-        <button type="button" class="kp-btn kp-action" data-key="clear" onclick="window.handleKeypadKey && window.handleKeypadKey('clear')">CLR</button>
-        <button type="button" class="kp-btn" data-key="0" onclick="window.handleKeypadKey && window.handleKeypadKey('0')">0</button>
-        <button type="button" class="kp-btn kp-submit" data-key="enter" onclick="window.handleKeypadKey && window.handleKeypadKey('enter')">ENT</button>
+      <div class="keypad-grid" id="keypad-grid">
+        <button type="button" class="kp-btn" data-key="1">1</button>
+        <button type="button" class="kp-btn" data-key="2">2</button>
+        <button type="button" class="kp-btn" data-key="3">3</button>
+        <button type="button" class="kp-btn" data-key="4">4</button>
+        <button type="button" class="kp-btn" data-key="5">5</button>
+        <button type="button" class="kp-btn" data-key="6">6</button>
+        <button type="button" class="kp-btn" data-key="7">7</button>
+        <button type="button" class="kp-btn" data-key="8">8</button>
+        <button type="button" class="kp-btn" data-key="9">9</button>
+        <button type="button" class="kp-btn kp-action" data-key="clear" aria-label="Clear keypad input">CLR</button>
+        <button type="button" class="kp-btn" data-key="0">0</button>
+        <button type="button" class="kp-btn kp-submit" data-key="enter" aria-label="Submit code">ENT</button>
       </div>
       <div class="keypad-status" id="keypad-status">AWAITING CODE INPUT...</div>
     </div>

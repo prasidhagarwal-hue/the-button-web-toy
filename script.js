@@ -266,12 +266,11 @@
         };
 
         // Reconcile stage progression
-        if (state.gameCompleted || state.stage === 5) {
+        if (state.gameCompleted || state.stage === 5 || state.keypadUnlocked) {
           state.stage = 5;
-        } else if (state.keypadUnlocked || state.stage === 4) {
+        } else if (state.stage === 4 || (state.cluesFound && state.cluesFound.every(Boolean))) {
           state.stage = 4;
-        } else if (state.cluesFound && state.cluesFound.every(Boolean)) {
-          state.stage = 4;
+          state.keypadUnlocked = false; // Keypad is ready to receive input in Stage 4
         } else if (state.stage === 3) {
           state.stage = 3;
         } else if (state.stage === 2 || state.clickCount >= 6) {
@@ -1287,8 +1286,37 @@
     saveState();
   }
 
+  let lastKeypadPressTime = 0;
+  let lastKeypadKey = null;
+  let isKeypadVerifying = false;
+
   function handleKeypadKey(key) {
-    if (state.keypadUnlocked) return;
+    if (!key || isKeypadVerifying) return;
+
+    const strKey = String(key).trim();
+
+    // Guard against duplicate rapid events (touch+click or multiple triggers within 80ms)
+    const now = Date.now();
+    if (strKey === lastKeypadKey && (now - lastKeypadPressTime) < 80) {
+      return;
+    }
+    lastKeypadPressTime = now;
+    lastKeypadKey = strKey;
+
+    // Visual button press feedback
+    const btnEl = document.querySelector(`.kp-btn[data-key="${strKey}"]`);
+    if (btnEl) {
+      btnEl.classList.add('pressed');
+      setTimeout(() => btnEl.classList.remove('pressed'), 120);
+    }
+
+    // If game has already advanced to stage 5, make sure stage 5 UI is displayed
+    if (state.stage >= 5) {
+      if (D.stage5ChoicePanel && D.stage5ChoicePanel.hidden) {
+        initiateStage5();
+      }
+      return;
+    }
 
     // Auto-advance to Stage 4 if player enters a key on the keypad
     if (state.stage < 4) {
@@ -1298,7 +1326,7 @@
       updateProgression();
     }
 
-    if (key === 'clear') {
+    if (strKey === 'clear') {
       state.keypadInput = '';
       Sound.pop();
       updateKeypadUI();
@@ -1309,29 +1337,44 @@
       return;
     }
 
-    if (key === 'enter') {
+    if (strKey === 'enter') {
       checkKeypadCode();
       return;
     }
 
-    if (/^[0-9]$/.test(key)) {
+    if (/^[0-9]$/.test(strKey)) {
       if (state.keypadInput.length < 3) {
-        state.keypadInput += key;
+        state.keypadInput += strKey;
         Sound.click();
         updateKeypadUI();
 
+        if (D.keypadStatus && D.keypadStatus.classList.contains('error')) {
+          D.keypadStatus.textContent = 'AWAITING CODE INPUT...';
+          D.keypadStatus.className = 'keypad-status';
+        }
+
         if (state.keypadInput.length === 3) {
-          setTimeout(() => checkKeypadCode(), 260);
+          isKeypadVerifying = true;
+          setTimeout(() => {
+            checkKeypadCode();
+            isKeypadVerifying = false;
+          }, 260);
         }
       }
     }
   }
 
   function updateKeypadUI() {
-    if (!D.kDigits) return;
+    const digits = (D.kDigits && D.kDigits.length === 3 && D.kDigits[0]) ? D.kDigits : [
+      document.getElementById('k-digit-0'),
+      document.getElementById('k-digit-1'),
+      document.getElementById('k-digit-2')
+    ];
     for (let i = 0; i < 3; i++) {
-      if (D.kDigits[i]) {
-        D.kDigits[i].textContent = state.keypadInput[i] || '_';
+      if (digits[i]) {
+        const val = state.keypadInput[i];
+        digits[i].textContent = val ? val : '_';
+        digits[i].classList.toggle('filled', !!val);
       }
     }
   }
@@ -1554,7 +1597,7 @@
     let ledColor = '#5a5af8';
     let directiveText = 'CONTAINMENT DIRECTIVE // LEVEL 0';
 
-    if (state.stage === 5 || state.gameCompleted) {
+    if (state.stage === 5 || state.gameCompleted || state.keypadUnlocked) {
       stageNum = 5;
       stageName = 'STAGE 5 // FINAL CHOICE';
       D.body.className = 'stage-5';
@@ -1567,7 +1610,7 @@
       D.warningText.textContent = "CONTAINMENT OVERRIDDEN // STAGE 5";
       D.warningSub.textContent = "The Button stands defenseless before you. Make your choice.";
       D.warningSub.classList.add('has-text');
-    } else if (state.stage === 4 || state.keypadUnlocked) {
+    } else if (state.stage === 4) {
       stageNum = 4;
       stageName = 'STAGE 4 // THE SECRET CODE';
       D.body.className = 'stage-4';
@@ -1850,10 +1893,17 @@
     if (isDormant) wakeUp('keyboard');
 
     // Stage 4 Keypad Keyboard Input:
-    if ((state.stage === 4 || (D.keypadPanel && !D.keypadPanel.hidden)) && !state.keypadUnlocked) {
+    if ((state.stage === 4 || (D.keypadPanel && !D.keypadPanel.hidden)) && state.stage < 5) {
+      let numKey = null;
       if (/^[0-9]$/.test(e.key)) {
+        numKey = e.key;
+      } else if (/^Numpad[0-9]$/.test(e.code)) {
+        numKey = e.code.replace('Numpad', '');
+      }
+
+      if (numKey !== null) {
         e.preventDefault();
-        handleKeypadKey(e.key);
+        handleKeypadKey(numKey);
         return;
       }
       if (e.key === 'Backspace' || e.key === 'Escape' || e.key === 'Delete') {
@@ -1861,7 +1911,7 @@
         handleKeypadKey('clear');
         return;
       }
-      if (e.key === 'Enter') {
+      if (e.key === 'Enter' || e.code === 'NumpadEnter') {
         e.preventDefault();
         handleKeypadKey('enter');
         return;
@@ -2708,13 +2758,6 @@
         handleClueClick(2);
         return;
       }
-      const kp = e.target.closest('.kp-btn');
-      if (kp && kp.dataset.key) {
-        e.preventDefault();
-        e.stopPropagation();
-        handleKeypadKey(kp.dataset.key);
-        return;
-      }
     });
 
     if (D.containmentShield) {
@@ -2730,23 +2773,17 @@
       });
     }
 
-    // Stage 4 Security Keypad Panel Listeners
+    // Stage 4 Security Keypad Panel Listener (Single delegated listener)
     if (D.keypadPanel) {
       D.keypadPanel.addEventListener('click', (e) => {
         const btn = e.target.closest('.kp-btn');
         if (btn && btn.dataset.key) {
+          e.preventDefault();
           e.stopPropagation();
           handleKeypadKey(btn.dataset.key);
         }
       });
     }
-
-    document.querySelectorAll('.kp-btn').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        handleKeypadKey(btn.dataset.key);
-      });
-    });
 
     // Ensure progression and UI are synchronized
     updateProgression();
