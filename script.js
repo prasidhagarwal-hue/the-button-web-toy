@@ -1206,7 +1206,11 @@
   const CLUE_DIGITS = ['7', '4', '2'];
 
   function handleClueClick(idx) {
-    if (state.cluesFound[idx]) return;
+    if (typeof idx !== 'number' || idx < 0 || idx > 2) return;
+    if (state.cluesFound[idx]) {
+      showToast('ℹ️ Already Discovered', `Clue ${idx + 1}/3 (${['α', 'β', 'γ'][idx]}) was already found: Code Digit [${CLUE_DIGITS[idx]}]`, 2500);
+      return;
+    }
     state.cluesFound[idx] = true;
 
     Sound.achievement();
@@ -1224,7 +1228,7 @@
     if (state.cluesFound.every(Boolean)) {
       unlockAchievement('detective');
       showToast('🕵️ DETECTIVE ACHIEVED', 'All 3 clues discovered! Override Code: 7 - 4 - 2. Keypad unlocking...', 4500);
-      setTimeout(() => initiateStage4(), 1200);
+      setTimeout(() => initiateStage4(), 900);
     }
     saveState();
   }
@@ -1247,6 +1251,13 @@
           slot.classList.remove('found');
         }
       });
+    }
+
+    if (D.hintDigitsText) {
+      const d0 = state.cluesFound[0] ? '7' : '?';
+      const d1 = state.cluesFound[1] ? '4' : '?';
+      const d2 = state.cluesFound[2] ? '2' : '?';
+      D.hintDigitsText.textContent = `${d0} - ${d1} - ${d2}`;
     }
 
     if (D.clue1) D.clue1.classList.toggle('discovered', !!state.cluesFound[0]);
@@ -1277,12 +1288,24 @@
   }
 
   function handleKeypadKey(key) {
-    if (state.stage !== 4 || state.keypadUnlocked) return;
+    if (state.keypadUnlocked) return;
+
+    // Auto-advance to Stage 4 if player enters a key on the keypad
+    if (state.stage < 4) {
+      state.stage = 4;
+      D.body.className = 'stage-4';
+      if (D.keypadPanel) D.keypadPanel.hidden = false;
+      updateProgression();
+    }
 
     if (key === 'clear') {
       state.keypadInput = '';
       Sound.pop();
       updateKeypadUI();
+      if (D.keypadStatus) {
+        D.keypadStatus.textContent = 'AWAITING CODE INPUT...';
+        D.keypadStatus.className = 'keypad-status';
+      }
       return;
     }
 
@@ -1540,6 +1563,7 @@
       corruption = 100;
       if (D.keypadPanel) D.keypadPanel.hidden = true;
       if (D.stage5ChoicePanel) D.stage5ChoicePanel.hidden = false;
+      if (D.investigationBar) D.investigationBar.hidden = true;
       D.warningText.textContent = "CONTAINMENT OVERRIDDEN // STAGE 5";
       D.warningSub.textContent = "The Button stands defenseless before you. Make your choice.";
       D.warningSub.classList.add('has-text');
@@ -1551,6 +1575,7 @@
       directiveText = 'SECURITY OVERRIDE // KEYPAD ACTIVE';
       corruption = 85;
       if (D.keypadPanel) D.keypadPanel.hidden = false;
+      if (D.stage5ChoicePanel) D.stage5ChoicePanel.hidden = true;
       if (D.investigationBar) D.investigationBar.hidden = false;
       D.warningText.textContent = "SECURITY OVERRIDE CODE REQUIRED";
       D.warningSub.textContent = "Enter the 3-digit anomaly code discovered during investigation (7 - 4 - 2).";
@@ -1562,6 +1587,8 @@
       ledColor = '#e056fd';
       directiveText = 'INVESTIGATION // 3 ANOMALIES DETECTED';
       corruption = 65;
+      if (D.keypadPanel) D.keypadPanel.hidden = true;
+      if (D.stage5ChoicePanel) D.stage5ChoicePanel.hidden = true;
       if (D.investigationBar) D.investigationBar.hidden = false;
       D.warningText.textContent = "THERE ARE 3 THINGS YOU HAVEN'T NOTICED.";
       D.warningSub.textContent = "🔒 Containment lockdown engaged. Discover all 3 hidden anomaly clues in the interface.";
@@ -1573,6 +1600,9 @@
       ledColor = '#ffa502';
       directiveText = 'ANOMALY ALERT // EVASIVE TRAJECTORY';
       corruption = 40;
+      if (D.keypadPanel) D.keypadPanel.hidden = true;
+      if (D.stage5ChoicePanel) D.stage5ChoicePanel.hidden = true;
+      if (D.investigationBar) D.investigationBar.hidden = true;
       D.warningText.textContent = "THE BUTTON FIGHTS BACK.";
       D.warningSub.textContent = "⚡ Autonomous evasive instincts engaged. Beware of holographic decoys!";
       D.warningSub.classList.add('has-text');
@@ -1583,10 +1613,16 @@
       ledColor = '#ff4757';
       directiveText = 'CONTAINMENT STATUS // COMPROMISED';
       corruption = Math.min(c * 5, 30);
+      if (D.keypadPanel) D.keypadPanel.hidden = true;
+      if (D.stage5ChoicePanel) D.stage5ChoicePanel.hidden = true;
+      if (D.investigationBar) D.investigationBar.hidden = true;
     } else {
       stageNum = 0;
       stageName = 'STAGE 0 // THE WARNING';
       D.body.className = 'stage-0';
+      if (D.keypadPanel) D.keypadPanel.hidden = true;
+      if (D.stage5ChoicePanel) D.stage5ChoicePanel.hidden = true;
+      if (D.investigationBar) D.investigationBar.hidden = true;
     }
 
     state.stage = stageNum;
@@ -1814,13 +1850,13 @@
     if (isDormant) wakeUp('keyboard');
 
     // Stage 4 Keypad Keyboard Input:
-    if (state.stage === 4 && !state.keypadUnlocked) {
+    if ((state.stage === 4 || (D.keypadPanel && !D.keypadPanel.hidden)) && !state.keypadUnlocked) {
       if (/^[0-9]$/.test(e.key)) {
         e.preventDefault();
         handleKeypadKey(e.key);
         return;
       }
-      if (e.key === 'Backspace') {
+      if (e.key === 'Backspace' || e.key === 'Escape' || e.key === 'Delete') {
         e.preventDefault();
         handleKeypadKey('clear');
         return;
@@ -2624,10 +2660,62 @@
     // Custom Context Menu Easter Egg
     setupContextMenu();
 
+    // Expose handlers globally for inline HTML onclick attributes
+    window.handleClueClick = handleClueClick;
+    window.handleKeypadKey = handleKeypadKey;
+    window.resetAllProgress = resetAllProgress;
+
     // Stage 3 Hidden Clues Listeners
-    if (D.clue1) D.clue1.addEventListener('click', () => handleClueClick(0));
-    if (D.clue2) D.clue2.addEventListener('click', () => handleClueClick(1));
-    if (D.clue3) D.clue3.addEventListener('click', () => handleClueClick(2));
+    if (D.clue1) {
+      D.clue1.addEventListener('click', (e) => {
+        e.stopPropagation();
+        handleClueClick(0);
+      });
+    }
+    if (D.clue2) {
+      D.clue2.addEventListener('click', (e) => {
+        e.stopPropagation();
+        handleClueClick(1);
+      });
+    }
+    if (D.clue3) {
+      D.clue3.addEventListener('click', (e) => {
+        e.stopPropagation();
+        handleClueClick(2);
+      });
+    }
+
+    // Document-level event delegation for clues and keypad buttons
+    document.addEventListener('click', (e) => {
+      const c1 = e.target.closest('#clue-1, .clue-glyph');
+      if (c1) {
+        e.preventDefault();
+        e.stopPropagation();
+        handleClueClick(0);
+        return;
+      }
+      const c2 = e.target.closest('#clue-2, .clue-collar');
+      if (c2) {
+        e.preventDefault();
+        e.stopPropagation();
+        handleClueClick(1);
+        return;
+      }
+      const c3 = e.target.closest('#clue-3, .clue-watermark');
+      if (c3) {
+        e.preventDefault();
+        e.stopPropagation();
+        handleClueClick(2);
+        return;
+      }
+      const kp = e.target.closest('.kp-btn');
+      if (kp && kp.dataset.key) {
+        e.preventDefault();
+        e.stopPropagation();
+        handleKeypadKey(kp.dataset.key);
+        return;
+      }
+    });
 
     if (D.containmentShield) {
       D.containmentShield.addEventListener('click', handleStage3Deflect);
@@ -2642,12 +2730,28 @@
       });
     }
 
-    // Stage 4 Security Keypad Listeners
+    // Stage 4 Security Keypad Panel Listeners
+    if (D.keypadPanel) {
+      D.keypadPanel.addEventListener('click', (e) => {
+        const btn = e.target.closest('.kp-btn');
+        if (btn && btn.dataset.key) {
+          e.stopPropagation();
+          handleKeypadKey(btn.dataset.key);
+        }
+      });
+    }
+
     document.querySelectorAll('.kp-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
         handleKeypadKey(btn.dataset.key);
       });
     });
+
+    // Ensure progression and UI are synchronized
+    updateProgression();
+    updateInvestigationUI();
+    updateKeypadUI();
 
     // Stage 5 Final Choice Listeners
     if (D.choiceDestroy) {
